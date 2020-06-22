@@ -1,0 +1,49 @@
+{
+   "bindings" : {
+      "/actions/ralph" : {
+         "poses" : [
+            {
+               "output" : "/actions/ralph/in/hand_left",
+               "path" : "/user/hand/left/pose/raw"
+            },
+            {
+               "output" : "/actions/ralph/in/hand_right",
+               "path" : "/user/hand/right/pose/raw"
+            }
+         ],
+         "haptics" : [
+            {
+               "output" : "/actions/ralph/out/haptic_left",
+               "path" : "/user/hand/left/output/haptic"
+            },
+            {
+               "output" : "/actions/ralph/out/haptic_right",
+               "path" : "/user/hand/right/output/haptic"
+            }
+         ],
+         "sources" : [
+            {
+               "inputs" : {
+                  "click" : {
+                     "output" : "/actions/ralph/in/trackpadclick"
+                  }
+               },
+               "mode" : "button",
+               "path" : "/user/hand/left/input/trackpad"
+            },
+            {
+               "inputs" : {
+                  "position" : {
+                     "output" : "/actions/ralph/in/trackpadpos"
+                  }
+               },
+               "mode" : "trackpad",
+               "path" : "/user/hand/left/input/trackpad"
+            }
+         ]
+      }
+   },
+   "controller_type" : "generic",
+   "description" : "Bindings for the Ralph demo for a generic controller",
+   "name" : "Ralph demo bindings for a generic controller"
+}

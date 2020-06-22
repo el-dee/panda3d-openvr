@@ -1,0 +1,5 @@
+include *.md
+include LICENSE.txt
+graft p3dopenvr
+
+global-exclude *.py[cod] __pycache__
