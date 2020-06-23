@@ -3,11 +3,16 @@ from panda3d.core import LMatrix3, LMatrix4, CS_yup_right, CS_default
 from panda3d.core import WindowProperties, FrameBufferProperties, GraphicsPipe, GraphicsOutput, GraphicsEngine, Texture, PythonCallbackObject
 from panda3d.core import Camera, MatrixLens, OrthographicLens
 
+import atexit
 import openvr
 
 # HMD screens are never a power of 2 size
 load_prc_file_data("", "textures-power-2 none")
 load_prc_file_data("", "sync-video 0")
+
+@atexit.register
+def exitfunc():
+    openvr.shutdown()
 
 class P3DOpenVR():
     def __init__(self):
