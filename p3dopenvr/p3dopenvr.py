@@ -116,7 +116,7 @@ class P3DOpenVR():
         base.cam.node().set_lens(lens)
         base.cam.reparent_to(self.quad)
 
-    def init(self, root=None):
+    def init(self, near=0.2, far=500.0, root=None):
         poses_t = openvr.TrackedDevicePose_t * openvr.k_unMaxTrackedDeviceCount
         self.poses = poses_t()
         self.vr_system = openvr.init(openvr.VRApplication_Scene)
@@ -125,9 +125,6 @@ class P3DOpenVR():
         self.vr_input = openvr.VRInput()
         if self.compositor is None:
             raise Exception("Unable to create compositor") 
-        # Compute projection matrix
-        zNear = 0.2
-        zFar = 500.0
 
         if root is None:
             root = render
@@ -136,8 +133,8 @@ class P3DOpenVR():
         self.left_eye_anchor = self.hmd_anchor.attach_new_node('left-eye')
         self.right_eye_anchor = self.hmd_anchor.attach_new_node('right-eye')
 
-        self.projection_left = self.coord_mat_inv * self.convert_mat(self.vr_system.getProjectionMatrix(openvr.Eye_Left, zNear, zFar))
-        self.projection_right = self.coord_mat_inv * self.convert_mat(self.vr_system.getProjectionMatrix(openvr.Eye_Right, zNear, zFar))
+        self.projection_left = self.coord_mat_inv * self.convert_mat(self.vr_system.getProjectionMatrix(openvr.Eye_Left, near, far))
+        self.projection_right = self.coord_mat_inv * self.convert_mat(self.vr_system.getProjectionMatrix(openvr.Eye_Right, near, far))
 
         left_cam_node = self.create_camera('left-cam', self.projection_left)
         right_cam_node = self.create_camera('right-cam', self.projection_right)
