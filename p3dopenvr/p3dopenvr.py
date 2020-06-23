@@ -5,10 +5,17 @@ from panda3d.core import Camera, MatrixLens, OrthographicLens
 
 import atexit
 import openvr
+import os
 
 # HMD screens are never a power of 2 size
 load_prc_file_data("", "textures-power-2 none")
+
+# Disable v-sync, it will be managed by waitGetPoses()
 load_prc_file_data("", "sync-video 0")
+# NVidia driver requires this env variable to be set to 0 to disable v-sync
+os.environ['__GL_SYNC_TO_VBLANK'] = "0"
+# MESA OpenGL drivers requires this env variable to be set to 0 to disable v-sync
+os.environ['vblank_mode'] = "0"
 
 @atexit.register
 def exitfunc():
