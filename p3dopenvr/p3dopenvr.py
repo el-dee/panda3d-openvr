@@ -5,6 +5,7 @@ from panda3d.core import Camera, MatrixLens, OrthographicLens
 
 import openvr
 
+# HMD screens are never a power of 2 size
 load_prc_file_data("", "textures-power-2 none")
 load_prc_file_data("", "sync-video 0")
 
@@ -119,7 +120,6 @@ class P3DOpenVR():
         self.vr_input = openvr.VRInput()
         if self.compositor is None:
             raise Exception("Unable to create compositor") 
-        print("SIZE:", width, height)
         # Compute projection matrix
         zNear = 0.2
         zFar = 500.0
