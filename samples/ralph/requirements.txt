@@ -1,0 +1,2 @@
+panda3d>=1.10.6
+../../dist/panda3d_openvr-0.1.0-py3-none-any.whl
