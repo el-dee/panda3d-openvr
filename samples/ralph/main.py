@@ -6,6 +6,7 @@ from panda3d.core import CollisionHandlerQueue, CollisionRay
 from panda3d.core import Filename, AmbientLight, DirectionalLight
 from panda3d.core import PandaNode, NodePath, Camera, TextNode
 from panda3d.core import CollideMask, LVector3
+from panda3d.core import ExecutionEnvironment
 from direct.gui.OnscreenText import OnscreenText
 from p3dopenvr.p3dopenvr import P3DOpenVR
 import random
@@ -27,7 +28,8 @@ def addTitle(text):
 
 class RoamingRalphVR(P3DOpenVR):
     def init_action(self):
-        filename = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ralph_actions.json")
+        main_dir = ExecutionEnvironment.getEnvironmentVariable("MAIN_DIR")
+        filename = os.path.join(main_dir, "ralph_actions.json")
         self.load_action_manifest(filename, "/actions/ralph")
         self.action_haptic_left = self.vr_input.getActionHandle('/actions/ralph/out/Haptic_Left')
         self.source_left = self.vr_input.getInputSourceHandle('/user/hand/left')
