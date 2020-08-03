@@ -8,6 +8,12 @@ This module requires Panda3D > 1.10, pyopenvr and a implementation of OpenVR (St
 
 ## Installation
 
+### From wheel
+
+    pip install panda3d-openvr
+
+### From source
+
     git clone https://github.com/el-dee/panda3d-openvr
     cd panda3d-openvr
     python3 setup.py install
@@ -32,7 +38,7 @@ You can create a derived class from P3DOpenVR to provide the implementation of t
 The module will create the following hierachy in the scenegraph :
 
 * Traking space origin (tracking_space)
-    * HMD anchor (hmf_anchor)
+    * HMD anchor (hmd_anchor)
         * Left eye (left_eye_anchor)
       * Right eye (right_eye_anchor)
     * Tracked device 1
