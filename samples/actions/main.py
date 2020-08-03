@@ -1,4 +1,5 @@
 from direct.showbase.ShowBase import ShowBase
+from panda3d.core import ExecutionEnvironment
 
 from p3dopenvr.p3dopenvr import P3DOpenVR
 
@@ -12,7 +13,8 @@ class MinimalOpenVR(P3DOpenVR):
         self.right_hand = None
 
     def init_action(self):
-        filename = os.path.join(os.path.dirname(os.path.abspath(__file__)), "demo_actions.json")
+        main_dir = ExecutionEnvironment.getEnvironmentVariable("MAIN_DIR")
+        filename = os.path.join(main_dir, "demo_actions.json")
         self.load_action_manifest(filename, "/actions/demo")
         self.action_haptic_left = self.vr_input.getActionHandle('/actions/demo/out/Haptic_Left')
         self.source_left = self.vr_input.getInputSourceHandle('/user/hand/left')
