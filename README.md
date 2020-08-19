@@ -4,7 +4,7 @@ This module provides basic integration of [OpenVR](https://github.com/ValveSoftw
 
 ## Requirements
 
-This module requires Panda3D > 1.10, pyopenvr and a implementation of OpenVR (SteamVR or OpenComposite (not tested though...))
+This module requires Panda3D > 1.10, pyopenvr and a implementation of OpenVR (SteamVR or OpenComposite (not tested though...)). It supports Windows, Linux and macOS platforms.
 
 ## Installation
 
@@ -31,9 +31,9 @@ Then, once an instance of ShowBase is created, instanciate the VR interface and 
 
 Once done, the module will enable the VR application layer of OpenVR, create the left and right cameras and configure the rendering system to send the images of each eye to the VR compositor.
 
-Note that SteamVR **must** be already running before you launch your application.
+Note that on Linux, SteamVR **must** be already running before you launch your application.
 
-You can create a derived class from P3DOpenVR to provide the implementation of the event handler or to manage the actions, see the samples below.
+You can create a derived class of P3DOpenVR to provide the implementation of the event handler or to manage the actions, see the samples below.
 
 The module will create the following hierachy in the scenegraph :
 
@@ -45,7 +45,10 @@ The module will create the following hierachy in the scenegraph :
     * Tracked device 2
     * ...
 
+The controllers will be one the the tracked devices, see the samples to know how to map the tracked device with the actual controller and find its role (left or right hand).
+
 By default the left eye image is also rendered on the main application window.
+
 
 ## Examples
 
