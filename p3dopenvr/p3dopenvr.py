@@ -63,7 +63,7 @@ class P3DOpenVR():
             print("COULD NOT CREATE BUFFER")
         return buffer
 
-    def create_renderer(self, name, camera, width, height, callback, cc=None):
+    def create_renderer(self, name, camera, width, height, msaa, callback, cc=None):
         texture = Texture()
         texture.set_wrap_u(Texture.WMClamp)
         texture.set_wrap_v(Texture.WMClamp)
@@ -71,6 +71,8 @@ class P3DOpenVR():
         texture.set_magfilter(Texture.FT_linear)
         fbprops = FrameBufferProperties()
         fbprops.setRgbaBits(1, 1, 1, 1)
+        if msaa > 0:
+            fbprops.setMultisamples(msaa)
         buffer = self.create_buffer(name, texture, width, height, fbprops=fbprops)
         dr = buffer.make_display_region()
         dr.set_camera(camera)
@@ -124,7 +126,7 @@ class P3DOpenVR():
         base.cam.node().set_lens(lens)
         base.cam.reparent_to(self.quad)
 
-    def init(self, near=0.2, far=500.0, root=None, submit_together=True):
+    def init(self, near=0.2, far=500.0, root=None, submit_together=True, msaa=0):
         self.submit_together = submit_together
         poses_t = openvr.TrackedDevicePose_t * openvr.k_unMaxTrackedDeviceCount
         self.poses = poses_t()
@@ -151,8 +153,8 @@ class P3DOpenVR():
         self.left_cam = self.left_eye_anchor.attach_new_node(left_cam_node)
         self.right_cam = self.right_eye_anchor.attach_new_node(right_cam_node)
 
-        self.left_texture = self.create_renderer('left-buffer', self.left_cam, width, height, self.left_cb)
-        self.right_texture = self.create_renderer('right-buffer', self.right_cam, width, height, self.right_cb)
+        self.left_texture = self.create_renderer('left-buffer', self.left_cam, width, height, msaa, self.left_cb)
+        self.right_texture = self.create_renderer('right-buffer', self.right_cam, width, height, msaa, self.right_cb)
 
         self.disable_main_cam()
         self.replicate(self.left_texture)

@@ -103,7 +103,7 @@ class RoamingRalphDemo(ShowBase):
         # Create the main character, Ralph
 
         self.vr = RoamingRalphVR()
-        self.vr.init()
+        self.vr.init(msaa=4)
 
         self.ralph = render.attachNewNode('ralph')
         self.ralphStartPos = self.environ.find("**/start_point").getPos()
