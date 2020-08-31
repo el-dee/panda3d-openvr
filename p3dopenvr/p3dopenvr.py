@@ -42,6 +42,7 @@ class P3DOpenVR():
         self.empty_world = None
         self.coord_mat = LMatrix4.convert_mat(CS_yup_right, CS_default)
         self.coord_mat_inv = LMatrix4.convert_mat(CS_default, CS_yup_right)
+        self.submit_together = True
 
     def create_buffer(self, name, texture, width, height, fbprops):
         winprops = WindowProperties()
@@ -123,7 +124,8 @@ class P3DOpenVR():
         base.cam.node().set_lens(lens)
         base.cam.reparent_to(self.quad)
 
-    def init(self, near=0.2, far=500.0, root=None):
+    def init(self, near=0.2, far=500.0, root=None, submit_together=True):
+        self.submit_together = submit_together
         poses_t = openvr.TrackedDevicePose_t * openvr.k_unMaxTrackedDeviceCount
         self.poses = poses_t()
         self.vr_system = openvr.init(openvr.VRApplication_Scene)
@@ -246,10 +248,13 @@ class P3DOpenVR():
 
     def left_cb(self, cbdata):
         cbdata.upcall()
-        self.submit_texture(openvr.Eye_Left, self.left_texture)
+        if not self.submit_together:
+            self.submit_texture(openvr.Eye_Left, self.left_texture)
 
     def right_cb(self, cbdata):
         cbdata.upcall()
+        if self.submit_together:
+            self.submit_texture(openvr.Eye_Left, self.left_texture)
         self.submit_texture(openvr.Eye_Right, self.right_texture)
 
     def get_pose_modelview(self, pose):
