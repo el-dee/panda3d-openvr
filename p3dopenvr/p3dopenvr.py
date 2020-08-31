@@ -246,11 +246,11 @@ class P3DOpenVR():
 
     def left_cb(self, cbdata):
         cbdata.upcall()
-        self.submit_texture(openvr.Eye_Right, self.right_texture)
+        self.submit_texture(openvr.Eye_Left, self.left_texture)
 
     def right_cb(self, cbdata):
         cbdata.upcall()
-        self.submit_texture(openvr.Eye_Left, self.left_texture)
+        self.submit_texture(openvr.Eye_Right, self.right_texture)
 
     def get_pose_modelview(self, pose):
         modelview = self.convert_mat(pose.mDeviceToAbsoluteTracking)
