@@ -126,7 +126,7 @@ class P3DOpenVR():
         base.cam.node().set_lens(lens)
         base.cam.reparent_to(self.quad)
 
-    def init(self, near=0.2, far=500.0, root=None, submit_together=True, msaa=0):
+    def init(self, near=0.2, far=500.0, root=None, submit_together=True, msaa=0, replicate=1):
         self.submit_together = submit_together
         poses_t = openvr.TrackedDevicePose_t * openvr.k_unMaxTrackedDeviceCount
         self.poses = poses_t()
@@ -157,7 +157,15 @@ class P3DOpenVR():
         self.right_texture = self.create_renderer('right-buffer', self.right_cam, width, height, msaa, self.right_cb)
 
         self.disable_main_cam()
-        self.replicate(self.left_texture)
+
+        if replicate == 1:
+            print("Replicating left eye")
+            self.replicate(self.left_texture)
+        elif replicate == 2:
+            print("Replicating right eye")
+            self.replicate(self.right_texture)
+        else:
+            print("Eye replication disabled")
 
         self.init_action()
 
