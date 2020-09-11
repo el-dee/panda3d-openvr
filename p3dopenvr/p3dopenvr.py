@@ -22,8 +22,9 @@ def exitfunc():
     openvr.shutdown()
 
 class P3DOpenVR():
-    def __init__(self):
+    def __init__(self,verbose):
         self.vr_system = None
+        self.verbose = verbose
         self.vr_input = None
         self.compositor = None
         self.poses = None
@@ -159,13 +160,16 @@ class P3DOpenVR():
         self.disable_main_cam()
 
         if replicate == 1:
-            print("Replicating left eye")
+            if self.verbose:
+                print("Replicating left eye")
             self.replicate(self.left_texture)
         elif replicate == 2:
-            print("Replicating right eye")
+            if self.verbose:
+                print("Replicating right eye")
             self.replicate(self.right_texture)
         else:
-            print("Eye replication disabled")
+            if self.verbose:
+                print("Eye replication disabled")
 
         self.init_action()
 
@@ -175,7 +179,8 @@ class P3DOpenVR():
         pass
 
     def load_action_manifest(self, action_filename, action_path):
-        print("Loading", action_filename)
+        if self.verbose:
+            print("Loading", action_filename)
         self.vr_input.setActionManifestPath(action_filename)
         self.action_path = action_path
         self.action_set_handle = self.vr_input.getActionSetHandle(self.action_path)
