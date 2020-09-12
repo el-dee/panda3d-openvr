@@ -22,7 +22,7 @@ def exitfunc():
     openvr.shutdown()
 
 class P3DOpenVR():
-    def __init__(self,verbose):
+    def __init__(self, verbose=True):
         self.vr_system = None
         self.verbose = verbose
         self.vr_input = None
