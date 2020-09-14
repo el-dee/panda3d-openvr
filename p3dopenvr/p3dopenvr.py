@@ -23,6 +23,13 @@ def exitfunc():
 
 class P3DOpenVR():
     def __init__(self, verbose=True):
+        """
+        Wrapper around pyopenvr to allow it to work with Panda3D.
+        See the init() method below for the actual initialization.
+
+        * verbose specifies if the library prints status information when running.
+        """
+
         self.vr_system = None
         self.verbose = verbose
         self.vr_input = None
@@ -128,6 +135,24 @@ class P3DOpenVR():
         base.cam.reparent_to(self.quad)
 
     def init(self, near=0.2, far=500.0, root=None, submit_together=True, msaa=0, replicate=1):
+        """
+        Initialize OpenVR. This method will create the rendering buffers, the cameras associated with each eyes
+        and the various anchors in the tracked space. It will also start the tasks responsible for the correct
+        scheduling. This method should be called only once.
+
+        * near and far parameters can be used to specify the near and far planes of the cameras.
+
+        * root parameter, when not None, is used as the root node to which the tracked space will attached.
+          Otherwise the tracked space is attached to render.
+
+        * submit_together specifies if each eye buffer is submitted just after being rendered or both at once.
+
+        * msaa specifies the multisampling anti-aliasing level to use, set to 0 to disable.
+
+        * replicate specifies which eye is replicated on the application window.
+          0: No replication, 1: left eye, 2: right eye.
+        """
+
         self.submit_together = submit_together
         poses_t = openvr.TrackedDevicePose_t * openvr.k_unMaxTrackedDeviceCount
         self.poses = poses_t()
@@ -176,6 +201,10 @@ class P3DOpenVR():
         taskMgr.add(self.update_poses_task, "openvr-update-poses", sort=-1000)
 
     def init_action(self):
+        """
+        Method called when OpenVR is initialized and ready to register the actions manifest.
+        This method should be implemented in a derived class.
+        """
         pass
 
     def load_action_manifest(self, action_filename, action_path):
@@ -194,6 +223,14 @@ class P3DOpenVR():
         self.right_eye_anchor.set_mat(self.coord_mat_inv * view_right * self.coord_mat)
 
     def new_tracked_device(self, device_index, device_anchor):
+        """
+        Method called when a new tracked device has been detected.
+        This method should be implemented in a derived class.
+
+        * device_index is the index of the device to be used as parameter when using OpenVR API.
+
+        * device_anchor is the node path created in the tracked space for the device.
+        """
         pass
 
     def update_tracked_device(self, device_index, pose):
@@ -217,6 +254,12 @@ class P3DOpenVR():
             self.update_tracked_device(i, pose)
 
     def process_vr_event(self, event):
+        """
+        Method called to process all the pending events received from OpenVR.
+        This method should be implemented in a derived class.
+
+        * event is the OpenVR event object received.
+        """
         pass
 
     def poll_events(self):
@@ -227,6 +270,10 @@ class P3DOpenVR():
             has_events = self.vr_system.pollNextEvent(event)
 
     def update_action(self):
+        """
+        Method called when all the poses and anchors have been updated.
+        This method should be implemented in a derived class.
+        """
         pass
 
     def update_action_state(self):
@@ -273,10 +320,16 @@ class P3DOpenVR():
         self.submit_texture(openvr.Eye_Right, self.right_texture)
 
     def get_pose_modelview(self, pose):
+        """
+        Return the transform matrix corresponding to the given pose in the tracked space reference frame
+        """
         modelview = self.convert_mat(pose.mDeviceToAbsoluteTracking)
         return self.coord_mat_inv * modelview * self.coord_mat
 
     def get_action_pose(self, action):
+        """
+        Return the pose associated with the given action. The action must be a pose action.
+        """
         pose_data = self.vr_input.getPoseActionDataForNextFrame(
             action,
             openvr.TrackingUniverseStanding,
@@ -332,6 +385,9 @@ class P3DOpenVR():
             return None, None
 
     def list_devices(self):
+        """
+        Debug method printing the detected tracked devices
+        """
         if self.poses is None: return 
         for i in range(1, len(self.poses)):
             pose = self.poses[i]
