@@ -275,7 +275,7 @@ class P3DOpenVR():
         This method should be implemented in a derived class.
         """
         pass
-    def on_texture_submit_error(error):
+    def on_texture_submit_error(self, error):
         raise error # by default, just raise the error
         # This method can be overidden to put a custom exception handler
     def update_action_state(self):
