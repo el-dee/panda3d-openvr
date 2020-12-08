@@ -275,7 +275,9 @@ class P3DOpenVR():
         This method should be implemented in a derived class.
         """
         pass
-
+    def on_texture_submit_error(error):
+        raise error # by default, just raise the error
+        # This method can be overidden to put a custom exception handler
     def update_action_state(self):
         if self.action_set_handle is None: return
         action_sets = (openvr.VRActiveActionSet_t * 1)()
@@ -299,14 +301,17 @@ class P3DOpenVR():
         return task.cont
 
     def submit_texture(self, eye, texture):
-        texture_context = texture.prepare_now(0, base.win.gsg.prepared_objects, base.win.gsg)
-        handle = texture_context.get_native_id()
-        if handle != 0:
-            ovr_texture = openvr.Texture_t()
-            ovr_texture.handle = texture_context.get_native_id()
-            ovr_texture.eType = openvr.TextureType_OpenGL
-            ovr_texture.eColorSpace = openvr.ColorSpace_Gamma
-            self.compositor.submit(eye, ovr_texture)
+        try:
+            texture_context = texture.prepare_now(0, base.win.gsg.prepared_objects, base.win.gsg)
+            handle = texture_context.get_native_id()
+            if handle != 0:
+                ovr_texture = openvr.Texture_t()
+                ovr_texture.handle = texture_context.get_native_id()
+                ovr_texture.eType = openvr.TextureType_OpenGL
+                ovr_texture.eColorSpace = openvr.ColorSpace_Gamma
+                self.compositor.submit(eye, ovr_texture)
+       except Exception as e:
+           self.on_texture_submit_error(e)
 
     def left_cb(self, cbdata):
         cbdata.upcall()
