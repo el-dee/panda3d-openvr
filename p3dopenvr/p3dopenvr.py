@@ -310,7 +310,7 @@ class P3DOpenVR():
                 ovr_texture.eType = openvr.TextureType_OpenGL
                 ovr_texture.eColorSpace = openvr.ColorSpace_Gamma
                 self.compositor.submit(eye, ovr_texture)
-       except Exception as e:
+        except Exception as e:
            self.on_texture_submit_error(e)
 
     def left_cb(self, cbdata):
