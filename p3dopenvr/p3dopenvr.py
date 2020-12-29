@@ -389,7 +389,16 @@ class P3DOpenVR():
             return analog_data, device_path
         else:
             return None, None
-
+    def get_skelatal_action_value(self,action,device_path=None):
+        skeleton_data = self.vr_input.GetSkeletalActionData(action, openvr.k_ulInvalidInputValueHandle)
+        if device_path is not None:
+            if skeleton_data.bActive:
+                origin_info = self.vr_input.getOriginTrackedDeviceInfo(skeleton_data.activeOrigin)
+                device_path = origin_info.devicePath
+        if skeleton_data.bActive:
+            return skeleton_data, device_path
+        else:
+            return None, None
     def list_devices(self):
         """
         Debug method printing the detected tracked devices
