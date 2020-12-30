@@ -389,22 +389,25 @@ class P3DOpenVR():
             return analog_data, device_path
         else:
             return None, None
+            return None, None
     def get_skelatal_action_value(self,action,device_path=None):
-        bone_transform = openvr.VRBoneTransform_t()
-        bone_transform_list = [bone_transform] * 31
-        bone_transform_array = (ctypes.c_int * len(bone_transform_list))(*bone_transform_list)
-        #print(dir(bone_transform))
         skeleton_data = self.vr_input.getSkeletalActionData(action)
-        bone_data = self.vr_input.getSkeletalBoneData(action, openvr.VRSkeletalTransformSpace_Parent, openvr.VRSkeletalMotionRange_WithoutController, bone_transform_array)
+        if skeleton_data.bActive == 0:
+            return None
+
+        boneCount = self.vr_input.getBoneCount(action)
+        bone_transform_arr = [openvr.VRBoneTransform_t()] * boneCount
+        arr = (openvr.VRBoneTransform_t * len(bone_transform_arr))(*bone_transform_arr)
+        bone_data = self.vr_input.getSkeletalBoneData(action, openvr.VRSkeletalTransformSpace_Model, openvr.VRSkeletalMotionRange_WithoutController, arr)
         
         if device_path is not None:
             if skeleton_data.bActive:
                 origin_info = self.vr_input.getOriginTrackedDeviceInfo(skeleton_data.activeOrigin)
                 device_path = origin_info.devicePath
         if skeleton_data.bActive:
-            return bone_transform, device_path
+            return arr
         else:
-            return None, None
+            return None
     def list_devices(self):
         """
         Debug method printing the detected tracked devices
