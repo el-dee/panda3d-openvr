@@ -2,7 +2,8 @@ from setuptools import setup
 
 __version__ = ''
 exec(open('p3dopenvr/version.py').read())
-
+helpers = Extension('helpers',
+                    sources = ['helpers.c'])
 setup(
     version=__version__,
     keywords='panda3d openvr',
@@ -12,4 +13,5 @@ setup(
         'panda3d',
         'openvr',
     ],
+    ext_modules = [helpers]
 )
