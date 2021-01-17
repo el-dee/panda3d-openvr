@@ -293,7 +293,7 @@ class P3DOpenVR():
         self.poll_events()
         hmd_pose = self.poses[openvr.k_unTrackedDeviceIndex_Hmd]
         if not hmd_pose.bPoseIsValid:
-            if verbose:
+            if self.verbose:
                 print("HMD pose is not valid")
             return task.cont
         self.update_hmd(hmd_pose)
