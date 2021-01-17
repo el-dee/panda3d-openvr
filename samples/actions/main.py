@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from direct.showbase.ShowBase import ShowBase
 from panda3d.core import ExecutionEnvironment
 
@@ -11,6 +13,11 @@ class MinimalOpenVR(P3DOpenVR):
         P3DOpenVR.__init__(self)
         self.left_hand = None
         self.right_hand = None
+
+    def load_vrmanifest(self):
+        main_dir = ExecutionEnvironment.getEnvironmentVariable("MAIN_DIR")
+        filename = os.path.join(main_dir, "actions.vrmanifest")
+        self.identify_application(filename, "p3dopenvr.demo.actions")
 
     def init_action(self):
         main_dir = ExecutionEnvironment.getEnvironmentVariable("MAIN_DIR")
@@ -66,6 +73,8 @@ base.setFrameRateMeter(True)
 
 myvr = MinimalOpenVR()
 myvr.init()
+
+myvr.load_vrmanifest()
 
 model = loader.loadModel("panda")
 model.reparentTo(render)

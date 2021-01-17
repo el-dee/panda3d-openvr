@@ -30,8 +30,9 @@ class P3DOpenVR():
         * verbose specifies if the library prints status information when running.
         """
 
-        self.vr_system = None
         self.verbose = verbose
+        self.vr_system = None
+        self.vr_applications = None
         self.vr_input = None
         self.compositor = None
         self.poses = None
@@ -157,6 +158,7 @@ class P3DOpenVR():
         poses_t = openvr.TrackedDevicePose_t * openvr.k_unMaxTrackedDeviceCount
         self.poses = poses_t()
         self.vr_system = openvr.init(openvr.VRApplication_Scene)
+        self.vr_applications = openvr.VRApplications()
         width, height = self.vr_system.getRecommendedRenderTargetSize()
         self.compositor = openvr.VRCompositor()
         self.vr_input = openvr.VRInput()
@@ -206,6 +208,36 @@ class P3DOpenVR():
         This method should be implemented in a derived class.
         """
         pass
+
+    def identify_application(self, application_filename, app_key, temporary=True, force=False):
+        identified = False
+        app_installed = self.vr_applications.isApplicationInstalled(app_key)
+        if not app_installed or force:
+            if self.verbose:
+                print("Installing manifest for application '{}'".format(app_key))
+            if os.path.exists(application_filename):
+                if app_installed and force:
+                    try:
+                        self.vr_applications.removeApplicationManifest(application_filename)
+                    except openvr.error_code.ApplicationError:
+                        pass
+                self.load_application_manifest(application_filename, temporary)
+            else:
+                print("ERROR: Manifest file '{}' not found".format(application_filename))
+        else:
+            if self.verbose:
+                print("Application manifest already registered for '{}'".format(app_key))
+        try:
+            self.vr_applications.identifyApplication(os.getpid(), app_key)
+            identified = True
+        except openvr.error_code.ApplicationError_UnknownApplication:
+            print("ERROR: Could not identify application '{}', manifest information is probably wrong".format(app_key))
+        return identified
+
+    def load_application_manifest(self, manifest_filename, temporary):
+        if self.verbose:
+            print("Loading", manifest_filename)
+        self.vr_applications.addApplicationManifest(manifest_filename, temporary)
 
     def load_action_manifest(self, action_filename, action_path):
         if self.verbose:
