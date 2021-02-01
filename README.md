@@ -20,9 +20,9 @@ This module requires Panda3D > 1.10, pyopenvr and a implementation of OpenVR (St
 
 ## Usage
 
-To use panda3d-openvr, first import the p2dopenvr module in your application :
+To use panda3d-openvr, first import the p3dopenvr module in your application :
 
-    import p3dopenvr
+    from p3dopenvr.p3dopenvr import *
 
 Then, once an instance of ShowBase is created, instanciate the VR interface and initialize it :
 
