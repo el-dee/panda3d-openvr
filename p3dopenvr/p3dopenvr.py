@@ -136,7 +136,7 @@ class P3DOpenVR():
         self.base.cam.node().set_lens(lens)
         self.base.cam.reparent_to(self.quad)
 
-    def init(self, near=0.2, far=500.0, root=None, submit_together=True, msaa=0, replicate=1):
+    def init(self, near=0.2, far=500.0, root=None, submit_together=True, msaa=0, replicate=1, srgb=None):
         """
         Initialize OpenVR. This method will create the rendering buffers, the cameras associated with each eyes
         and the various anchors in the tracked space. It will also start the tasks responsible for the correct
@@ -153,9 +153,20 @@ class P3DOpenVR():
 
         * replicate specifies which eye is replicated on the application window.
           0: No replication, 1: left eye, 2: right eye.
+
+        * srgb : If None, OpenVR will detect the color space from the texture format. If set to True, sRGB color
+          space will be enforced; if set to False, linear color space will be enforced.
         """
 
         self.submit_together = submit_together
+        if srgb is None:
+            self.color_space = openvr.ColorSpace_Auto
+        else:
+            if srgb:
+                self.color_space = openvr.ColorSpace_Gamma
+            else:
+                self.color_space = openvr.ColorSpace_Linear
+
         poses_t = openvr.TrackedDevicePose_t * openvr.k_unMaxTrackedDeviceCount
         self.poses = poses_t()
         self.vr_system = openvr.init(openvr.VRApplication_Scene)
@@ -344,7 +355,7 @@ class P3DOpenVR():
                 ovr_texture = openvr.Texture_t()
                 ovr_texture.handle = texture_context.get_native_id()
                 ovr_texture.eType = openvr.TextureType_OpenGL
-                ovr_texture.eColorSpace = openvr.ColorSpace_Gamma
+                ovr_texture.eColorSpace = self.color_space
                 self.compositor.submit(eye, ovr_texture)
         except Exception as e:
            self.on_texture_submit_error(e)
