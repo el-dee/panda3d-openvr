@@ -22,7 +22,7 @@ def exitfunc():
     openvr.shutdown()
 
 class P3DOpenVR():
-    def __init__(self, verbose=True):
+    def __init__(self, base=None, verbose=True):
         """
         Wrapper around pyopenvr to allow it to work with Panda3D.
         See the init() method below for the actual initialization.
@@ -30,6 +30,9 @@ class P3DOpenVR():
         * verbose specifies if the library prints status information when running.
         """
 
+        if base is None:
+            base = __builtins__.get('base')
+        self.base = base
         self.verbose = verbose
         self.vr_system = None
         self.vr_applications = None
@@ -38,7 +41,7 @@ class P3DOpenVR():
         self.poses = None
         self.action_set_handles = []
         self.buffers = []
-        self.nextsort = base.win.getSort() - 1000
+        self.nextsort = self.base.win.getSort() - 1000
         self.tracking_space = None
         self.hmd_anchor = None
         self.left_eye_anchor = None
@@ -60,7 +63,7 @@ class P3DOpenVR():
         if fbprops is not None:
             props.add_properties(fbprops)
 
-        buffer = base.win.make_texture_buffer(name, width, height, to_ram=False, fbp=props)
+        buffer = self.base.win.make_texture_buffer(name, width, height, to_ram=False, fbp=props)
         if buffer is not None:
             buffer.clear_render_textures()
             buffer.set_sort(self.nextsort)
@@ -116,7 +119,7 @@ class P3DOpenVR():
 
     def disable_main_cam(self):
         self.empty_world = NodePath()
-        base.camera.reparent_to(self.empty_world)
+        self.base.camera.reparent_to(self.empty_world)
 
     def replicate(self, texture):
         cm = CardMaker("replicate-quad")
@@ -130,8 +133,8 @@ class P3DOpenVR():
         lens.set_film_size(2, 2)
         lens.set_film_offset(0, 0)
         lens.set_near_far(-1000, 1000)
-        base.cam.node().set_lens(lens)
-        base.cam.reparent_to(self.quad)
+        self.base.cam.node().set_lens(lens)
+        self.base.cam.reparent_to(self.quad)
 
     def init(self, near=0.2, far=500.0, root=None, submit_together=True, msaa=0, replicate=1):
         """
@@ -335,7 +338,7 @@ class P3DOpenVR():
 
     def submit_texture(self, eye, texture):
         try:
-            texture_context = texture.prepare_now(0, base.win.gsg.prepared_objects, base.win.gsg)
+            texture_context = texture.prepare_now(0, self.base.win.gsg.prepared_objects, self.base.win.gsg)
             handle = texture_context.get_native_id()
             if handle != 0:
                 ovr_texture = openvr.Texture_t()
