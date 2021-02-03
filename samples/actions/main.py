@@ -19,10 +19,13 @@ class MinimalOpenVR(P3DOpenVR):
         filename = os.path.join(main_dir, "actions.vrmanifest")
         self.identify_application(filename, "p3dopenvr.demo.actions")
 
-    def init_action(self):
+    def load_actions(self):
         main_dir = ExecutionEnvironment.getEnvironmentVariable("MAIN_DIR")
         filename = os.path.join(main_dir, "demo_actions.json")
-        self.load_action_manifest(filename, "/actions/demo")
+        self.load_action_manifest(filename)
+
+    def link_actions(self):
+        self.add_action_set("/actions/demo")
         self.action_haptic_left = self.vr_input.getActionHandle('/actions/demo/out/Haptic_Left')
         self.source_left = self.vr_input.getInputSourceHandle('/user/hand/left')
         self.action_pose_left = self.vr_input.getActionHandle('/actions/demo/in/Hand_Left')
@@ -75,6 +78,8 @@ myvr = MinimalOpenVR()
 myvr.init()
 
 myvr.load_vrmanifest()
+myvr.load_actions()
+myvr.link_actions()
 
 model = loader.loadModel("panda")
 model.reparentTo(render)

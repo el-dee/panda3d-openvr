@@ -36,9 +36,7 @@ class P3DOpenVR():
         self.vr_input = None
         self.compositor = None
         self.poses = None
-        self.action_url = None
-        self.action_path = None
-        self.action_set_handle = None
+        self.action_set_handles = []
         self.buffers = []
         self.nextsort = base.win.getSort() - 1000
         self.tracking_space = None
@@ -198,16 +196,11 @@ class P3DOpenVR():
             if self.verbose:
                 print("Eye replication disabled")
 
-        self.init_action()
+        if hasattr(self, 'init_action'):
+            print("WARNING: init_action() is deprecated and will be removed in a future release")
+            self.init_action()
 
         taskMgr.add(self.update_poses_task, "openvr-update-poses", sort=-1000)
-
-    def init_action(self):
-        """
-        Method called when OpenVR is initialized and ready to register the actions manifest.
-        This method should be implemented in a derived class.
-        """
-        pass
 
     def identify_application(self, application_filename, app_key, temporary=True, force=False):
         identified = False
@@ -239,12 +232,16 @@ class P3DOpenVR():
             print("Loading", manifest_filename)
         self.vr_applications.addApplicationManifest(manifest_filename, temporary)
 
-    def load_action_manifest(self, action_filename, action_path):
+    def load_action_manifest(self, action_filename, action_path=None):
         if self.verbose:
             print("Loading", action_filename)
         self.vr_input.setActionManifestPath(action_filename)
-        self.action_path = action_path
-        self.action_set_handle = self.vr_input.getActionSetHandle(self.action_path)
+        if action_path is not None:
+            print("WARNING: 'action_path' parameter of load_action_manifest() is deprecated and will be removed in a next release")
+            self.add_action_set(action_path)
+
+    def add_action_set(self, action_set_path):
+        self.action_set_handles.append(self.vr_input.getActionSetHandle(action_set_path))
 
     def update_hmd(self, pose):
         modelview = self.convert_mat(pose.mDeviceToAbsoluteTracking)
@@ -310,12 +307,15 @@ class P3DOpenVR():
     def on_texture_submit_error(self, error):
         raise error # by default, just raise the error
         # This method can be overidden to put a custom exception handler
+
     def update_action_state(self):
-        if self.action_set_handle is None: return
-        action_sets = (openvr.VRActiveActionSet_t * 1)()
-        action_set = action_sets[0]
-        action_set.ulActionSet = self.action_set_handle
-        self.vr_input.updateActionState(action_sets)
+        nb_of_action_sets = len(self.action_set_handles)
+        if nb_of_action_sets > 0:
+            action_sets = (openvr.VRActiveActionSet_t * nb_of_action_sets)()
+            for i in range(nb_of_action_sets):
+                action_set = action_sets[i]
+                action_set.ulActionSet = self.action_set_handles[i]
+            self.vr_input.updateActionState(action_sets)
         self.update_action()
 
     def update_poses_task(self, task):

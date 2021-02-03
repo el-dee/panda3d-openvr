@@ -5,6 +5,12 @@
             "binding_url" : "demo_bindings_generic.json"
          }
       ], 
+  "action_sets" : [
+    {
+      "name" : "/actions/demo",
+      "usage" : "leftright"
+    }
+  ],
   "actions": [
     {
       "name": "/actions/demo/in/Hand_Left",
