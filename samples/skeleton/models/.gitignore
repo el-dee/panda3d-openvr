@@ -1,0 +1,2 @@
+# Ignore model files in case someone tries to include them in a commit
+*.glb

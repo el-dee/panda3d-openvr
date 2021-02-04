@@ -1,0 +1,41 @@
+{
+      "default_bindings": [
+         {
+            "controller_type" : "generic",
+            "binding_url" : "demo_bindings_generic.json"
+         }
+      ],
+  "action_sets" : [
+    {
+      "name" : "/actions/demo",
+      "usage" : "leftright"
+    }
+  ],
+  "actions": [
+    {
+      "name": "/actions/demo/in/Hand_Left",
+      "type": "pose"
+    },
+    {
+      "name": "/actions/demo/in/Hand_Right",
+      "type": "pose"
+    },
+    {
+      "name": "/actions/demo/in/left_hand_skeleton",
+      "type": "skeleton",
+      "skeleton": "/skeleton/hand/left"
+    },
+    {
+      "name": "/actions/demo/in/right_hand_skeleton",
+      "type": "skeleton",
+      "skeleton": "/skeleton/hand/right"
+    }
+  ],
+    "localization" : [
+        {
+            "language_tag": "en_US",
+            "/actions/demo/in/Hand_Left" : "Left Hand Pose",
+            "/actions/demo/in/Hand_Right" : "Right Hand Pose"
+       }
+    ]
+}

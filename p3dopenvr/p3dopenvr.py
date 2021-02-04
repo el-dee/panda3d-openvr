@@ -1,5 +1,5 @@
-from panda3d.core import load_prc_file_data, NodePath, CardMaker
-from panda3d.core import LMatrix3, LMatrix4, CS_yup_right, CS_default
+from panda3d.core import load_prc_file_data, NodePath, CardMaker, LQuaternion, compose_matrix
+from panda3d.core import LMatrix3, LMatrix4, LVector2, LVector3, LVector4, CS_yup_right, CS_default
 from panda3d.core import WindowProperties, FrameBufferProperties, GraphicsPipe, GraphicsOutput, GraphicsEngine, Texture, PythonCallbackObject
 from panda3d.core import Camera, MatrixLens, OrthographicLens
 
@@ -116,6 +116,18 @@ class P3DOpenVR():
                     mat.m[0][2], mat.m[1][2], mat.m[2][2], 0.0, 
                     mat.m[0][3], mat.m[1][3], mat.m[2][3], 1.0)
         return result
+
+    def convert_vector(self, vector):
+        if len(vector.v) == 4:
+            result = LVector4(vector.v[0], vector.v[1], vector.v[2], vector.v[3])
+        elif len(vector.v) == 3:
+            result = LVector3(vector.v[0], vector.v[1], vector.v[2])
+        elif len(vector.v) == 2:
+            result = LVector2(vector.v[0], vector.v[1])
+        return result
+
+    def convert_quaternion(self, quaternion):
+        return LQuaternion(quaternion.w, quaternion.x, quaternion.y, quaternion.z)
 
     def disable_main_cam(self):
         self.empty_world = NodePath()
@@ -435,6 +447,66 @@ class P3DOpenVR():
             return analog_data, device_path
         else:
             return None, None
+
+    def get_bone_transform(self, bone_transform_array, bone_index):
+        if bone_index < len(bone_transform_array):
+            bone_transform = bone_transform_array[bone_index]
+            if bone_transform is not None:
+                position = bone_transform.position
+                orientation = bone_transform.orientation
+                return self.coord_mat.xform(self.convert_vector(position)), self.coord_mat.xform(self.convert_quaternion(orientation))
+            else:
+                print("ERROR: No transform data for bone {}".format(bone_index))
+        else:
+            print("ERROR: Invalid bone index {}".format(bone_index))
+        return LVector4(), LQuaternion()
+
+    def get_bone_transform_mat(self, bone_transform_array, bone_index):
+        if bone_index < len(bone_transform_array):
+            bone_transform = bone_transform_array[bone_index]
+            if bone_transform is not None:
+                position = bone_transform.position
+                orientation = bone_transform.orientation
+                transform_mat = LMatrix4()
+                compose_matrix(transform_mat, LVector3(1), LVector3(0), self.convert_quaternion(orientation).get_hpr(), self.convert_vector(position).get_xyz())
+                return self.coord_mat_inv * transform_mat * self.coord_mat
+            else:
+                print("ERROR: No transform data for bone {}".format(bone_index))
+        else:
+            print("ERROR: Invalid bone index {}".format(bone_index))
+        return LMatrix4.ident_mat()
+
+    def get_skeletal_bone_data(self, action, device_path=None):
+        skeleton_data = self.vr_input.getSkeletalActionData(action)
+        if skeleton_data.bActive == 0:
+            return None, None
+
+        boneCount = self.vr_input.getBoneCount(action)
+        bone_transform_arr = [openvr.VRBoneTransform_t()] * boneCount
+        arr = (openvr.VRBoneTransform_t * len(bone_transform_arr))(*bone_transform_arr)
+        self.vr_input.getSkeletalBoneData(action, openvr.VRSkeletalTransformSpace_Parent, openvr.VRSkeletalMotionRange_WithoutController, arr)
+
+        if device_path is not None:
+            if skeleton_data.bActive:
+                origin_info = self.vr_input.getOriginTrackedDeviceInfo(skeleton_data.activeOrigin)
+                device_path = origin_info.devicePath
+        return arr, device_path
+
+    def get_skeletal_reference_transform(self, action, pose, device_path=None):
+        skeleton_data = self.vr_input.getSkeletalActionData(action)
+        if skeleton_data.bActive == 0:
+            return None, None
+
+        boneCount = self.vr_input.getBoneCount(action)
+        bone_transform_arr = [openvr.VRBoneTransform_t()] * boneCount
+        arr = (openvr.VRBoneTransform_t * len(bone_transform_arr))(*bone_transform_arr)
+        self.vr_input.getSkeletalReferenceTransforms(action, openvr.VRSkeletalTransformSpace_Parent, pose, arr)
+
+        if device_path is not None:
+            if skeleton_data.bActive:
+                origin_info = self.vr_input.getOriginTrackedDeviceInfo(skeleton_data.activeOrigin)
+                device_path = origin_info.devicePath
+        return arr, device_path
 
     def list_devices(self):
         """
