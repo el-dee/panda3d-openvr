@@ -39,10 +39,13 @@ ovr.init()
 
 model = loader.loadModel("panda")
 model.reparentTo(render)
-model.setPos(0, 10, -5)
-
+min_bounds, max_bounds = model.get_tight_bounds()
+height = max_bounds.get_z() - min_bounds.get_z()
+model.set_scale(1.5 / height)
+model.set_pos(0, 1, -min_bounds.get_z() / height * 1.5)
 demo = SkeletonDemo(ovr)
 
+base.accept('escape', base.userExit)
 base.accept('d', ovr.list_devices)
 base.accept('b', base.bufferViewer.toggleEnable)
 
