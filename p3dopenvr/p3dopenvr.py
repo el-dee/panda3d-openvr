@@ -53,6 +53,15 @@ class P3DOpenVR():
         self.coord_mat = LMatrix4.convert_mat(CS_yup_right, CS_default)
         self.coord_mat_inv = LMatrix4.convert_mat(CS_default, CS_yup_right)
         self.submit_together = True
+        self.event_handlers = []
+        self.submit_error_handler = None
+        self.new_tracked_device_handler = None
+
+        #Deprecation flags to avoid spamming
+        self.process_vr_event_notified = False
+        self.new_tracked_device_notified = False
+        self.update_action_notified = False
+        self.on_texture_submit_error_notified = False
 
     def create_buffer(self, name, texture, width, height, fbprops):
         winprops = WindowProperties()
@@ -280,16 +289,14 @@ class P3DOpenVR():
         view_right = self.convert_mat(self.vr_system.getEyeToHeadTransform(openvr.Eye_Right))
         self.right_eye_anchor.set_mat(self.coord_mat_inv * view_right * self.coord_mat)
 
-    def new_tracked_device(self, device_index, device_anchor):
+    def set_new_tracked_device_handler(self, event_handler):
         """
-        Method called when a new tracked device has been detected.
-        This method should be implemented in a derived class.
-
-        * device_index is the index of the device to be used as parameter when using OpenVR API.
-
-        * device_anchor is the node path created in the tracked space for the device.
+        Register a handler to be called when a new tracked device has been detected.
+        The handler will receive these two parameters :
+        * device_index : the index of the device to be used as parameter when using OpenVR API.
+        * device_anchor : the node path created in the tracked space for the device.
         """
-        pass
+        self.new_tracked_device_handler = event_handler
 
     def update_tracked_device(self, device_index, pose):
         if not device_index in self.tracked_devices_anchors:
@@ -297,7 +304,14 @@ class P3DOpenVR():
             np_name = str(device_index) + ':' + model_name
             device_anchor = self.tracking_space.attach_new_node(np_name)
             self.tracked_devices_anchors[device_index] = device_anchor
-            self.new_tracked_device(device_index, device_anchor)
+            if hasattr(self, 'new_tracked_device'):
+                if not self.new_tracked_device_notified:
+                    print("WARNING: new_tracked_device() is deprecated and will be removed in a future release")
+                    self.new_tracked_device_notified = True
+                self.new_tracked_device(device_index, device_anchor)
+            else:
+                if self.new_tracked_device_handler is not None:
+                    self.new_tracked_device_handler(device_index, device_anchor)
         else:
             device_anchor = self.tracked_devices_anchors[device_index]
         modelview = self.convert_mat(pose.mDeviceToAbsoluteTracking)
@@ -311,25 +325,37 @@ class P3DOpenVR():
                 continue
             self.update_tracked_device(i, pose)
 
-    def process_vr_event(self, event):
+    def register_event_handler(self, event_handler):
         """
-        Method called to process all the pending events received from OpenVR.
-        This method should be implemented in a derived class.
+        Register an event handler called to process all the pending events received from OpenVR.
+        The handler will receive one parameter :
+        * event : the OpenVR event to process.
+        """
 
-        * event is the OpenVR event object received.
+        self.event_handlers.append(event_handler)
+
+    def remove_event_handler(self, event_handler):
         """
-        pass
+        Remove a previously registered event handler
+        """
+        try:
+            self.event_handlers.remove(event_handler)
+        except ValueError:
+            pass
 
     def poll_events(self):
         event = openvr.VREvent_t()
         has_events = self.vr_system.pollNextEvent(event)
         while has_events:
-            self.process_vr_event(event)
+            if hasattr(self, 'process_vr_event'):
+                if not self.process_vr_event_notified:
+                    print("WARNING: 'update_action()' method is deprecated and will be removed in a next release")
+                    self.process_vr_event_notified = True
+                self.process_vr_event(event)
+            else:
+                for even_handler in self.event_handlers:
+                    event_handler.process(event)
             has_events = self.vr_system.pollNextEvent(event)
-
-    def on_texture_submit_error(self, error):
-        raise error # by default, just raise the error
-        # This method can be overidden to put a custom exception handler
 
     def update_action_state(self):
         nb_of_action_sets = len(self.action_set_handles)
@@ -340,7 +366,9 @@ class P3DOpenVR():
                 action_set.ulActionSet = self.action_set_handles[i]
             self.vr_input.updateActionState(action_sets)
         if hasattr(self, 'update_action'):
-            print("WARNING: 'update_action()' method is deprecated and will be removed in a next release")
+            if not self.update_action_notified:
+                print("WARNING: 'update_action()' method is deprecated and will be removed in a next release")
+                self.update_action_notified = True
             self.update_action()
 
     def update_poses_task(self, task):
@@ -358,6 +386,15 @@ class P3DOpenVR():
         self.update_action_state()
         return task.cont
 
+    def set_submit_error_handler(self, error_handler):
+        """
+        Register a handler called when submit_texture() fails. If no handler is registered, the catched
+        exception is directly reraised.
+        The handler will receive one parameter :
+        * exception : the exception raised during the texture submit.
+        """
+        self.submit_error_handler = error_handler
+
     def submit_texture(self, eye, texture):
         try:
             texture_context = texture.prepare_now(0, self.base.win.gsg.prepared_objects, self.base.win.gsg)
@@ -369,7 +406,17 @@ class P3DOpenVR():
                 ovr_texture.eColorSpace = self.color_space
                 self.compositor.submit(eye, ovr_texture)
         except Exception as e:
-            self.on_texture_submit_error(e)
+            if hasattr(self, 'on_texture_submit_error'):
+                if not self.on_texture_submit_error_notified:
+                    print("WARNING: 'on_texture_submit_error()' is deprecated and will be removed in a future release")
+                    self.on_texture_submit_error_notified = True
+                self.on_texture_submit_error(e)
+            else:
+                if self.submit_error_handler is not None:
+                    self.submit_error_handler(e)
+                else:
+                    # by default, just reraise the exception
+                    raise e
 
     def left_cb(self, cbdata):
         cbdata.upcall()
