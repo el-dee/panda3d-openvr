@@ -3,18 +3,22 @@ from direct.actor.Actor import Actor
 from .definitions import HandSkeletonBone
 
 class HandSkeleton:
-    def __init__(self, ovr, action, model, joint_map, part_name="modelRoot"):
+    def __init__(self, ovr, action, joint_map, part_name="modelRoot"):
         self.ovr = ovr
         self.action = action
-        self.model = model
         self.joint_map = joint_map
         self.part_name = part_name
         self.control_map = {}
-        if not isinstance(self.model, Actor):
-            self.model = Actor(model, copy=False)
+        self.model = None
+
+    def set_model(self, model):
+        if not isinstance(model, Actor):
+            model = Actor(model, copy=False)
+        self.model = model
         self.build_control_map()
 
     def build_control_map(self):
+        self.control_map = {}
         for (joint_name, bone_index) in self.joint_map.items():
             joint_control = self.model.control_joint(None, self.part_name, joint_name)
             if joint_control is not None:
@@ -61,8 +65,8 @@ class DefaultLeftHandSkeleton(HandSkeleton):
         'finger_pinky_l_end': HandSkeletonBone.PinkyFinger4
     }
 
-    def __init__(self, ovr, action, model):
-        HandSkeleton.__init__(self, ovr, action, model, self.default_joint_map)
+    def __init__(self, ovr, action):
+        HandSkeleton.__init__(self, ovr, action, self.default_joint_map)
 
 class DefaultRightHandSkeleton(HandSkeleton):
     default_joint_map = {
@@ -93,5 +97,5 @@ class DefaultRightHandSkeleton(HandSkeleton):
         'finger_pinky_r_end': HandSkeletonBone.PinkyFinger4
     }
 
-    def __init__(self, ovr, action, model):
-        HandSkeleton.__init__(self, ovr, action, model, self.default_joint_map)
+    def __init__(self, ovr, action):
+        HandSkeleton.__init__(self, ovr, action, self.default_joint_map)
