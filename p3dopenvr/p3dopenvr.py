@@ -190,7 +190,7 @@ class P3DOpenVR():
             raise Exception("Unable to create compositor") 
 
         if root is None:
-            root = render
+            root = self.base.render
         self.tracking_space = root.attach_new_node('tracking-space')
         self.hmd_anchor = self.tracking_space.attach_new_node('hmd-anchor')
         self.left_eye_anchor = self.hmd_anchor.attach_new_node('left-eye')
@@ -369,7 +369,7 @@ class P3DOpenVR():
                 ovr_texture.eColorSpace = self.color_space
                 self.compositor.submit(eye, ovr_texture)
         except Exception as e:
-           self.on_texture_submit_error(e)
+            self.on_texture_submit_error(e)
 
     def left_cb(self, cbdata):
         cbdata.upcall()
