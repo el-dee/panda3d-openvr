@@ -8,58 +8,42 @@ from p3dopenvr.skeleton import DefaultLeftHandSkeleton, DefaultRightHandSkeleton
 from p3dopenvr.hand import LeftHand, RightHand
 
 import os
+from direct.task.TaskManagerGlobal import taskMgr
 
-#load_prc_file_data("", "coordinate-system yup_right")
-
-class MinimalOpenVR(P3DOpenVR):
-    def __init__(self):
-        P3DOpenVR.__init__(self)
-        self.left_hand = None
-        self.right_hand = None
-
-    def load_vrmanifest(self):
+class SkeletonDemo:
+    def __init__(self, ovr):
         main_dir = ExecutionEnvironment.getEnvironmentVariable("MAIN_DIR")
-        filename = os.path.join(main_dir, "skeleton.vrmanifest")
-        self.identify_application(filename, "p3dopenvr.demo.skeleton")
+        ovr.identify_application(os.path.join(main_dir, "skeleton.vrmanifest"), "p3dopenvr.demo.skeleton")
+        ovr.load_action_manifest(os.path.join(main_dir, "demo_skeleton.json"))
+        ovr.add_action_set("/actions/demo")
+        action_pose_left = ovr.vr_input.getActionHandle('/actions/demo/in/Hand_Left')
+        action_pose_right = ovr.vr_input.getActionHandle('/actions/demo/in/Hand_Right')
+        action_left_hand_skeleton = ovr.vr_input.getActionHandle('/actions/demo/in/left_hand_skeleton')
+        action_right_hand_skeleton = ovr.vr_input.getActionHandle('/actions/demo/in/right_hand_skeleton')
+        self.left_hand = LeftHand(ovr, "models/vr_glove_left_model.glb", action_pose_left)
+        self.left_hand.set_skeleton(DefaultLeftHandSkeleton(ovr, action_left_hand_skeleton))
+        self.right_hand = RightHand(ovr, "models/vr_glove_right_model.glb", action_pose_right)
+        self.right_hand.set_skeleton(DefaultRightHandSkeleton(ovr, action_right_hand_skeleton))
+        taskMgr.add(self.update, sort=ovr.get_update_task_sort())
 
-    def load_actions(self):
-        main_dir = ExecutionEnvironment.getEnvironmentVariable("MAIN_DIR")
-        filename = os.path.join(main_dir, "demo_skeleton.json")
-        self.load_action_manifest(filename)
-
-    def load_models(self):
-        self.left_hand = LeftHand(self, "models/vr_glove_left_model.glb", self.action_pose_left)
-        self.left_hand.set_skeleton(DefaultLeftHandSkeleton(self, self.action_left_hand_skeleton))
-        self.right_hand = RightHand(self, "models/vr_glove_right_model.glb", self.action_pose_right)
-        self.right_hand.set_skeleton(DefaultRightHandSkeleton(self, self.action_right_hand_skeleton))
-
-    def link_actions(self):
-        self.add_action_set("/actions/demo")
-        self.action_pose_left = self.vr_input.getActionHandle('/actions/demo/in/Hand_Left')
-        self.action_pose_right = self.vr_input.getActionHandle('/actions/demo/in/Hand_Right')
-        self.action_left_hand_skeleton = self.vr_input.getActionHandle('/actions/demo/in/left_hand_skeleton')
-        self.action_right_hand_skeleton = self.vr_input.getActionHandle('/actions/demo/in/right_hand_skeleton')
-
-    def update_action(self):
+    def update(self, task):
         self.left_hand.update()
         self.right_hand.update()
+        return task.cont
 
 base = ShowBase()
 base.setFrameRateMeter(True)
 
-myvr = MinimalOpenVR()
-myvr.init()
-
-myvr.load_vrmanifest()
-myvr.load_actions()
-myvr.link_actions()
-myvr.load_models()
+ovr = P3DOpenVR()
+ovr.init()
 
 model = loader.loadModel("panda")
 model.reparentTo(render)
 model.setPos(0, 10, -5)
 
-base.accept('d', myvr.list_devices)
+demo = SkeletonDemo(ovr)
+
+base.accept('d', ovr.list_devices)
 base.accept('b', base.bufferViewer.toggleEnable)
 
 base.run()
