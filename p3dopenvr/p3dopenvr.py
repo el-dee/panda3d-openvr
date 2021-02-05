@@ -226,7 +226,10 @@ class P3DOpenVR():
             print("WARNING: init_action() is deprecated and will be removed in a future release")
             self.init_action()
 
-        taskMgr.add(self.update_poses_task, "openvr-update-poses", sort=-1000)
+        self.task = taskMgr.add(self.update_poses_task, "openvr-update-poses", sort=-1000)
+
+    def get_update_task_sort(self):
+        return self.task.get_sort() + 1
 
     def identify_application(self, application_filename, app_key, temporary=True, force=False):
         identified = False
@@ -324,12 +327,6 @@ class P3DOpenVR():
             self.process_vr_event(event)
             has_events = self.vr_system.pollNextEvent(event)
 
-    def update_action(self):
-        """
-        Method called when all the poses and anchors have been updated.
-        This method should be implemented in a derived class.
-        """
-        pass
     def on_texture_submit_error(self, error):
         raise error # by default, just raise the error
         # This method can be overidden to put a custom exception handler
@@ -342,7 +339,9 @@ class P3DOpenVR():
                 action_set = action_sets[i]
                 action_set.ulActionSet = self.action_set_handles[i]
             self.vr_input.updateActionState(action_sets)
-        self.update_action()
+        if hasattr(self, 'update_action'):
+            print("WARNING: 'update_action()' method is deprecated and will be removed in a next release")
+            self.update_action()
 
     def update_poses_task(self, task):
         if self.compositor is None:
