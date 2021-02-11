@@ -353,8 +353,8 @@ class P3DOpenVR():
                     self.process_vr_event_notified = True
                 self.process_vr_event(event)
             else:
-                for even_handler in self.event_handlers:
-                    event_handler.process(event)
+                for event_handler in self.event_handlers:
+                    event_handler(event)
             has_events = self.vr_system.pollNextEvent(event)
 
     def update_action_state(self):
