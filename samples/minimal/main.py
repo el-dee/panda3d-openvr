@@ -3,9 +3,8 @@ from direct.showbase.ShowBase import ShowBase
 from p3dopenvr.p3dopenvr import P3DOpenVR
 
 import openvr
-import os
 
-class MinimalOpenVR(P3DOpenVR):
+class MinimalDemo:
     classes_map = { openvr.TrackedDeviceClass_Invalid: 'Invalid',
                     openvr.TrackedDeviceClass_HMD: 'HMD',
                     openvr.TrackedDeviceClass_Controller: 'Controller',
@@ -50,16 +49,21 @@ class MinimalOpenVR(P3DOpenVR):
                           openvr.VREvent_ButtonUntouch: 'Untouch'
                         }
 
+    def __init__(self, ovr):
+        self.ovr = ovr
+        ovr.register_event_handler(self.process_vr_event)
+        ovr.set_new_tracked_device_handler(self.new_tracked_device)
+
     def button_event(self, event):
         device_index = event.trackedDeviceIndex
-        device_class = self.vr_system.getTrackedDeviceClass(device_index)
+        device_class = self.ovr.vr_system.getTrackedDeviceClass(device_index)
         if device_class != openvr.TrackedDeviceClass_Controller:
             return
         button_id = event.data.controller.button
         button_name = self.buttons_map.get(button_id)
         if button_name is None:
             button_name = 'Unknown button ({})'.format(button_id)
-        role = self.vr_system.getControllerRoleForTrackedDeviceIndex(device_index)
+        role = self.ovr.vr_system.getControllerRoleForTrackedDeviceIndex(device_index)
         role_name = self.roles_map.get(role)
         if role_name is None:
             role_name = 'Unknown role ({})'.format(role)
@@ -70,7 +74,7 @@ class MinimalOpenVR(P3DOpenVR):
 
     def device_event(self, event, action):
         device_index = event.trackedDeviceIndex
-        device_class = self.vr_system.getTrackedDeviceClass(device_index)
+        device_class = self.ovr.vr_system.getTrackedDeviceClass(device_index)
         class_name = self.classes_map.get(device_class)
         if class_name is None:
             class_name = 'Unknown class ({})'.format(class_name)
@@ -91,13 +95,12 @@ class MinimalOpenVR(P3DOpenVR):
 
     def new_tracked_device(self, device_index, device_anchor):
         print("Adding new device", device_anchor.name)
-        device_class = self.vr_system.getTrackedDeviceClass(device_index)
+        device_class = self.ovr.vr_system.getTrackedDeviceClass(device_index)
         if device_class == openvr.TrackedDeviceClass_Controller:
             model = loader.loadModel("box")
             model.reparent_to(device_anchor)
             model.set_scale(0.1)
         else:
-            print(device_class)
             model = loader.loadModel("camera")
             model.reparent_to(device_anchor)
             model.set_scale(0.1)
@@ -105,14 +108,20 @@ class MinimalOpenVR(P3DOpenVR):
 base = ShowBase()
 base.setFrameRateMeter(True)
 
-myvr = MinimalOpenVR()
-myvr.init()
+ovr = P3DOpenVR()
+ovr.init()
 
 model = loader.loadModel("panda")
 model.reparentTo(render)
-model.setPos(0, 10, -5)
+min_bounds, max_bounds = model.get_tight_bounds()
+height = max_bounds.get_z() - min_bounds.get_z()
+model.set_scale(1.5 / height)
+model.set_pos(0, 1, -min_bounds.get_z() / height * 1.5)
 
-base.accept('d', myvr.list_devices)
+demo = MinimalDemo(ovr)
+
+base.accept('escape', base.userExit)
+base.accept('d', ovr.list_devices)
 base.accept('b', base.bufferViewer.toggleEnable)
 
 base.run()
