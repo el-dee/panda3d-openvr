@@ -1,4 +1,6 @@
 from panda3d.core import load_prc_file_data, NodePath, CardMaker, LQuaternion, compose_matrix
+from panda3d.core import GeomVertexData, GeomVertexFormat, GeomVertexWriter, GeomTriangles, GeomNode, Geom, InternalName
+from panda3d.core import CullFaceAttrib, Shader, BitMask32
 from panda3d.core import LMatrix3, LMatrix4, LVector2, LVector3, LVector4, CS_yup_right, CS_default
 from panda3d.core import WindowProperties, FrameBufferProperties, GraphicsPipe, GraphicsOutput, GraphicsEngine, Texture, PythonCallbackObject
 from panda3d.core import Camera, MatrixLens, OrthographicLens
@@ -48,6 +50,7 @@ class P3DOpenVR():
         self.right_eye_anchor = None
         self.left_cam = None
         self.right_cam = None
+        self.ham_shader = None
         self.tracked_devices_anchors = {}
         self.empty_world = None
         self.coord_mat = LMatrix4.convert_mat(CS_yup_right, CS_default)
@@ -157,7 +160,62 @@ class P3DOpenVR():
         self.base.cam.node().set_lens(lens)
         self.base.cam.reparent_to(self.quad)
 
-    def init(self, near=0.2, far=500.0, root=None, submit_together=True, msaa=0, replicate=1, srgb=None):
+    def get_ham_shader(self):
+        """
+        Return a trivial shader that will directly place the mesh in the clip space
+        """
+        if self.ham_shader is None:
+            self.ham_shader = Shader.make(Shader.SL_GLSL,
+                vertex="""#version 330
+in vec4 p3d_Vertex;
+void main() {
+    gl_Position = p3d_Vertex;
+}
+""",
+       fragment="""#version 330
+out vec4 frag_color;
+void main() {
+    frag_color = vec4(0, 0, 0, 1);
+}
+""")
+        return self.ham_shader
+
+    def create_hidden_area_mesh(self, mask):
+        """
+        Using the provided mask configuration, create the mesh that will cover the area not visible from the HMD
+        """
+        gvf = GeomVertexFormat.get_v3()
+        gvd = GeomVertexData('gvd', gvf, Geom.UH_static)
+        geom = Geom(gvd)
+        gvw = GeomVertexWriter(gvd, InternalName.get_vertex())
+        for i in range(mask.unTriangleCount * 3):
+            vertex = mask.pVertexData[i]
+            # The clip space in Panda3D has [-1, 1] coordinates, the received coordinates are in [0, 1]
+            gvw.add_data3(vertex[0] * 2 - 1, vertex[1] * 2 - 1, -1)
+        prim = GeomTriangles(Geom.UH_static)
+        for i in range(mask.unTriangleCount):
+            prim.add_vertices(i * 3, i *3 + 1, i * 3 + 2)
+        geom.add_primitive(prim)
+        node = GeomNode('hidden-area-mesh')
+        node.add_geom(geom)
+        return node
+
+    def attach_hidden_area_mesh(self, eye, anchor, camera_mask):
+        """
+        Create and attach the two meshes that will hide the areas not visible from the HMD.
+        """
+        left_eye_mask = self.vr_system.getHiddenAreaMesh(eye, type_=openvr.k_eHiddenAreaMesh_Standard)
+        left_mesh = self.create_hidden_area_mesh(left_eye_mask)
+        np = anchor.attach_new_node(left_mesh)
+        # The winding order is not specified, it is recommended to disable backface culling
+        np.set_attrib(CullFaceAttrib.make(CullFaceAttrib.M_cull_none))
+        np.set_shader(self.get_ham_shader())
+        # Make sure that the mesh is rendered first to allow early-z optimization
+        np.set_bin("background", 0)
+        # Hide this mesh from the opposite camera
+        np.hide(BitMask32.bit(camera_mask))
+
+    def init(self, near=0.2, far=500.0, root=None, submit_together=True, msaa=0, replicate=1, srgb=None, hidden_area_mesh=True):
         """
         Initialize OpenVR. This method will create the rendering buffers, the cameras associated with each eyes
         and the various anchors in the tracked space. It will also start the tasks responsible for the correct
@@ -177,6 +235,9 @@ class P3DOpenVR():
 
         * srgb : If None, OpenVR will detect the color space from the texture format. If set to True, sRGB color
           space will be enforced; if set to False, linear color space will be enforced.
+
+        * hidden_area_mesh : If True, a mask will be applied on each camera to cover the area not seen from the HMD
+          This will trigger the early-z optimization on the GPU and avoid rendering unseen pixels.
         """
 
         self.submit_together = submit_together
@@ -218,6 +279,12 @@ class P3DOpenVR():
         self.right_texture = self.create_renderer('right-buffer', self.right_cam, width, height, msaa, self.right_cb)
 
         self.disable_main_cam()
+
+        if hidden_area_mesh:
+            left_cam_node.set_camera_mask(BitMask32.bit(0))
+            right_cam_node.set_camera_mask(BitMask32.bit(1))
+            self.attach_hidden_area_mesh(openvr.Eye_Left, self.left_eye_anchor, 1)
+            self.attach_hidden_area_mesh(openvr.Eye_Right, self.right_eye_anchor, 0)
 
         if replicate == 1:
             if self.verbose:
