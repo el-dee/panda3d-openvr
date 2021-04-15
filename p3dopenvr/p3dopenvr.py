@@ -209,7 +209,7 @@ void main() {
         np = anchor.attach_new_node(left_mesh)
         # The winding order is not specified, it is recommended to disable backface culling
         np.set_attrib(CullFaceAttrib.make(CullFaceAttrib.M_cull_none))
-        np.set_shader(self.get_ham_shader())
+        np.set_shader(self.get_ham_shader(), 10000)
         # Make sure that the mesh is rendered first to allow early-z optimization
         np.set_bin("background", 0)
         # Hide this mesh from the opposite camera
