@@ -503,14 +503,14 @@ void main() {
         modelview = self.convert_mat(pose.mDeviceToAbsoluteTracking)
         return self.coord_mat_inv * modelview * self.coord_mat
 
-    def get_action_pose(self, action):
+    def get_action_pose(self, action, device=openvr.k_ulInvalidInputValueHandle):
         """
         Return the pose associated with the given action. The action must be a pose action.
         """
         pose_data = self.vr_input.getPoseActionDataForNextFrame(
             action,
             openvr.TrackingUniverseStanding,
-            openvr.k_ulInvalidInputValueHandle,
+            device,
         )
         return pose_data
 
