@@ -11,7 +11,7 @@
         "arguments_osx": "",
         "arguments_linux": "",
         "image_path": "",
-        "action_manifest_path" : "demo_skeleton.json",
+        "action_manifest_path" : "../manifest/actions.json",
         "strings": {
             "en_us": {
                 "name": "Skeleton Demo",

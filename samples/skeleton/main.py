@@ -13,17 +13,16 @@ from direct.task.TaskManagerGlobal import taskMgr
 class SkeletonDemo:
     def __init__(self, ovr):
         main_dir = ExecutionEnvironment.getEnvironmentVariable("MAIN_DIR")
-        ovr.identify_application(os.path.join(main_dir, "skeleton.vrmanifest"), "p3dopenvr.demo.skeleton")
-        ovr.load_action_manifest(os.path.join(main_dir, "demo_skeleton.json"))
-        ovr.add_action_set("/actions/demo")
-        action_pose_left = ovr.vr_input.getActionHandle('/actions/demo/in/Hand_Left')
-        action_pose_right = ovr.vr_input.getActionHandle('/actions/demo/in/Hand_Right')
-        action_left_hand_skeleton = ovr.vr_input.getActionHandle('/actions/demo/in/left_hand_skeleton')
-        action_right_hand_skeleton = ovr.vr_input.getActionHandle('/actions/demo/in/right_hand_skeleton')
-        self.left_hand = LeftHand(ovr, "models/vr_glove_left_model.glb", action_pose_left)
-        self.left_hand.set_skeleton(DefaultLeftHandSkeleton(ovr, action_left_hand_skeleton))
-        self.right_hand = RightHand(ovr, "models/vr_glove_right_model.glb", action_pose_right)
-        self.right_hand.set_skeleton(DefaultRightHandSkeleton(ovr, action_right_hand_skeleton))
+        ovr.identify_application(os.path.join(main_dir, "skeleton.vrmanifest"), "p3dopenvr.demo.skeleton", force=True)
+        ovr.load_action_manifest(os.path.join(main_dir, "../manifest/actions.json"))
+        ovr.add_action_set("/actions/default")
+        hands_pose = ovr.vr_input.getActionHandle('/actions/default/in/Pose')
+        left_hand_skeleton_input = ovr.vr_input.getActionHandle('/actions/default/in/SkeletonLeftHand')
+        right_hand_skeleton_input = ovr.vr_input.getActionHandle('/actions/default/in/SkeletonRightHand')
+        self.left_hand = LeftHand(ovr, "models/vr_glove_left_model.glb", hands_pose)
+        self.left_hand.set_skeleton(DefaultLeftHandSkeleton(ovr, left_hand_skeleton_input))
+        self.right_hand = RightHand(ovr, "models/vr_glove_right_model.glb", hands_pose)
+        self.right_hand.set_skeleton(DefaultRightHandSkeleton(ovr, right_hand_skeleton_input))
         taskMgr.add(self.update, sort=ovr.get_update_task_sort())
 
     def update(self, task):

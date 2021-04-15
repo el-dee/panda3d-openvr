@@ -6,7 +6,6 @@ from panda3d.core import ExecutionEnvironment
 from p3dopenvr.p3dopenvr import P3DOpenVR
 from p3dopenvr.hand import LeftHand, RightHand
 
-import openvr
 import os
 from direct.task.TaskManagerGlobal import taskMgr
 
@@ -14,30 +13,22 @@ class ActionsDemo:
     def __init__(self, ovr):
         self.ovr = ovr
         main_dir = ExecutionEnvironment.getEnvironmentVariable("MAIN_DIR")
-        ovr.identify_application(os.path.join(main_dir, "actions.vrmanifest"), "p3dopenvr.demo.actions")
-        ovr.load_action_manifest(os.path.join(main_dir, "demo_actions.json"))
-        ovr.add_action_set("/actions/demo")
-        self.action_haptic_left = ovr.vr_input.getActionHandle('/actions/demo/out/Haptic_Left')
-        action_pose_left = ovr.vr_input.getActionHandle('/actions/demo/in/Hand_Left')
-        self.action_haptic_right = ovr.vr_input.getActionHandle('/actions/demo/out/Haptic_Right')
-        action_pose_right = ovr.vr_input.getActionHandle('/actions/demo/in/Hand_Right')
-        self.action_left_trigger = ovr.vr_input.getActionHandle('/actions/demo/in/left_trigger')
-        self.action_right_trigger = ovr.vr_input.getActionHandle('/actions/demo/in/right_trigger')
-        self.left_hand = LeftHand(ovr, "box", action_pose_left)
+        ovr.identify_application(os.path.join(main_dir, "actions.vrmanifest"), "p3dopenvr.demo.actions", force=True)
+        ovr.load_action_manifest(os.path.join(main_dir, "../manifest/actions.json"))
+        ovr.add_action_set("/actions/default")
+        self.action_haptic = ovr.vr_input.getActionHandle('/actions/default/out/Haptic')
+        hands_pose = ovr.vr_input.getActionHandle('/actions/default/in/Pose')
+        self.action_grip = ovr.vr_input.getActionHandle('/actions/default/in/GrabGrip')
+        self.left_hand = LeftHand(ovr, "box", hands_pose)
         self.left_hand.model.set_scale(0.1)
-        self.right_hand = RightHand(ovr, "box", action_pose_right)
+        self.right_hand = RightHand(ovr, "box", hands_pose)
         self.right_hand.model.set_scale(0.1)
         taskMgr.add(self.update, sort=ovr.get_update_task_sort())
 
     def update(self, task):
-        left_trigger_state, device = self.ovr.get_digital_action_rising_edge(self.action_left_trigger)
-        if left_trigger_state:
-            print("LEFT")
-            self.ovr.vr_input.triggerHapticVibrationAction(self.action_haptic_left, 0, 1, 4, 1, openvr.k_ulInvalidInputValueHandle)
-        right_trigger_state, device = self.ovr.get_digital_action_rising_edge(self.action_right_trigger)
-        if right_trigger_state:
-            print("RIGHT")
-            self.ovr.vr_input.triggerHapticVibrationAction(self.action_haptic_right, 0, 1, 4, 1, openvr.k_ulInvalidInputValueHandle)
+        grip_state, device = self.ovr.get_digital_action_rising_edge(self.action_grip, device_path=True)
+        if grip_state:
+            self.ovr.vr_input.triggerHapticVibrationAction(self.action_haptic, 0, 1, 4, 1, device)
         self.left_hand.update()
         self.right_hand.update()
         return task.cont
