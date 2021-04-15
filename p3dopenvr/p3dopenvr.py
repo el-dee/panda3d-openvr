@@ -514,7 +514,7 @@ void main() {
         )
         return pose_data
 
-    def get_digital_action_rising_edge(self, action, device_path=None):
+    def get_digital_action_rising_edge(self, action, device_path=False):
         """
         Returns true if the action is active and had a rising edge
         """
@@ -527,12 +527,12 @@ void main() {
                 device_path = openvr.k_ulInvalidInputValueHandle
         return action_data.bActive and action_data.bChanged and action_data.bState, device_path
 
-    def get_digital_action_falling_edge(self, action, device_path=None):
+    def get_digital_action_falling_edge(self, action, device_path=False):
         """
         Returns true if the action is active and had a falling edge
         """
         action_data = self.vr_input.getDigitalActionData(action, openvr.k_ulInvalidInputValueHandle)
-        if device_path is not None:
+        if device_path:
             if action_data.bActive:
                 origin_info = self.vr_input.getOriginTrackedDeviceInfo(action_data.activeOrigin)
                 device_path = origin_info.devicePath
@@ -540,12 +540,12 @@ void main() {
                 device_path = openvr.k_ulInvalidInputValueHandle
         return action_data.bActive and action_data.bChanged and not action_data.bState, device_path
 
-    def get_digital_action_state(self, action, device_path=None):
+    def get_digital_action_state(self, action, device_path=False):
         """
         Returns true if the action is active and its state is true
         """
         action_data = self.vr_input.getDigitalActionData(action, openvr.k_ulInvalidInputValueHandle)
-        if device_path is not None:
+        if device_path:
             if action_data.bActive:
                 origin_info = self.vr_input.getOriginTrackedDeviceInfo(action_data.activeOrigin)
                 device_path = origin_info.devicePath
@@ -553,12 +553,12 @@ void main() {
                 device_path = openvr.k_ulInvalidInputValueHandle
         return action_data.bActive and action_data.bState, device_path
 
-    def get_analog_action_value(self, action, device_path=None):
+    def get_analog_action_value(self, action, device_path=False):
         """
         Returns the analog value of the action, if it is active, else None
         """
         analog_data = self.vr_input.getAnalogActionData(action, openvr.k_ulInvalidInputValueHandle)
-        if device_path is not None:
+        if device_path:
             if analog_data.bActive:
                 origin_info = self.vr_input.getOriginTrackedDeviceInfo(analog_data.activeOrigin)
                 device_path = origin_info.devicePath
@@ -597,7 +597,7 @@ void main() {
             print("ERROR: Invalid bone index {}".format(bone_index))
         return LMatrix4.ident_mat()
 
-    def get_skeletal_bone_data(self, action, device_path=None):
+    def get_skeletal_bone_data(self, action, device_path=False):
         skeleton_data = self.vr_input.getSkeletalActionData(action)
         if skeleton_data.bActive == 0:
             return None, None
@@ -607,7 +607,7 @@ void main() {
         arr = (openvr.VRBoneTransform_t * len(bone_transform_arr))(*bone_transform_arr)
         self.vr_input.getSkeletalBoneData(action, openvr.VRSkeletalTransformSpace_Parent, openvr.VRSkeletalMotionRange_WithoutController, arr)
 
-        if device_path is not None:
+        if device_path:
             if skeleton_data.bActive:
                 origin_info = self.vr_input.getOriginTrackedDeviceInfo(skeleton_data.activeOrigin)
                 device_path = origin_info.devicePath
@@ -615,17 +615,20 @@ void main() {
                 device_path = openvr.k_ulInvalidInputValueHandle
         return arr, device_path
 
-    def get_skeletal_reference_transform(self, action, pose, device_path=None):
+    def get_skeletal_reference_transform(self, action, pose, device_path=False):
         skeleton_data = self.vr_input.getSkeletalActionData(action)
         if skeleton_data.bActive == 0:
-            return None, None
+            if device_path:
+                return None, openvr.k_ulInvalidInputValueHandle
+            else:
+                return None, None
 
         boneCount = self.vr_input.getBoneCount(action)
         bone_transform_arr = [openvr.VRBoneTransform_t()] * boneCount
         arr = (openvr.VRBoneTransform_t * len(bone_transform_arr))(*bone_transform_arr)
         self.vr_input.getSkeletalReferenceTransforms(action, openvr.VRSkeletalTransformSpace_Parent, pose, arr)
 
-        if device_path is not None:
+        if device_path:
             if skeleton_data.bActive:
                 origin_info = self.vr_input.getOriginTrackedDeviceInfo(skeleton_data.activeOrigin)
                 device_path = origin_info.devicePath
