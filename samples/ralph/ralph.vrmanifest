@@ -1,0 +1,22 @@
+{
+    "source" : "builtin",
+    "applications": [
+    {
+        "app_key": "p3dopenvr.demo.ralph",
+        "launch_type": "binary",
+        "binary_path_windows": "main.py",
+        "binary_path_osx": "main.py",
+        "binary_path_linux": "main.py",
+        "arguments": "",
+        "arguments_osx": "",
+        "arguments_linux": "",
+        "image_path": "",
+        "action_manifest_path" : "manifest/actions.json",
+        "strings": {
+            "en_us": {
+                "name": "Ralph Demo",
+                "description": "Panda3D OpenVR Ralph Demo"
+            }
+        }
+    }]
+}

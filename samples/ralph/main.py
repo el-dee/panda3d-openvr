@@ -3,16 +3,14 @@
 from direct.showbase.ShowBase import ShowBase
 from panda3d.core import CollisionTraverser, CollisionNode
 from panda3d.core import CollisionHandlerQueue, CollisionRay
-from panda3d.core import Filename, AmbientLight, DirectionalLight
-from panda3d.core import PandaNode, NodePath, Camera, TextNode
+from panda3d.core import AmbientLight, DirectionalLight
+from panda3d.core import  TextNode
 from panda3d.core import CollideMask, LVector3
 from panda3d.core import ExecutionEnvironment
 from direct.gui.OnscreenText import OnscreenText
 from p3dopenvr.p3dopenvr import P3DOpenVR
-import random
 import sys
 import os
-import math
 
 # Function to put instructions on the screen.
 def addInstructions(pos, msg):
@@ -26,52 +24,25 @@ def addTitle(text):
                         parent=base.a2dBottomRight, align=TextNode.ARight,
                         pos=(-0.1, 0.09), shadow=(0, 0, 0, 1))
 
-class RoamingRalphVR(P3DOpenVR):
-    def init_action(self):
-        main_dir = ExecutionEnvironment.getEnvironmentVariable("MAIN_DIR")
-        filename = os.path.join(main_dir, "ralph_actions.json")
-        self.load_action_manifest(filename, "/actions/ralph")
-        self.action_haptic_left = self.vr_input.getActionHandle('/actions/ralph/out/Haptic_Left')
-        self.source_left = self.vr_input.getInputSourceHandle('/user/hand/left')
-        self.action_pose_left = self.vr_input.getActionHandle('/actions/ralph/in/Hand_Left')
-        self.action_haptic_right = self.vr_input.getActionHandle('/actions/ralph/out/Haptic_Right')
-        self.source_right = self.vr_input.getInputSourceHandle('/user/hand/right')
-        self.action_pose_right = self.vr_input.getActionHandle('/actions/ralph/in/Hand_Right')
-        self.action_trackpad_click = self.vr_input.getActionHandle('/actions/ralph/in/trackpadclick')
-        self.action_trackpad_pos = self.vr_input.getActionHandle('/actions/ralph/in/trackpadpos')
-
-    def update_action(self):
-        # Get the time that elapsed since last frame.  We multiply this with
-        # the desired speed in order to find out with which distance to move
-        # in order to achieve that desired speed.
-        dt = globalClock.getDt()
-
-        # If a move-button is pressed, move in the specified direction.
-        click_data, device_path = self.get_digital_action_state(self.action_trackpad_click)
-        analog_data, device_path = self.get_analog_action_value(self.action_trackpad_pos)
-        if click_data and analog_data is not None:
-            x, y = analog_data.x,analog_data.y
-            if x < -0.4:
-                self.tracking_space.setH(self.tracking_space.getH() + 60 * dt)
-            if x > 0.4:
-                self.tracking_space.setH(self.tracking_space.getH() - 60 * dt)
-            if y > 0.1:
-                orientation = self.hmd_anchor.get_quat(render)
-                vector = orientation.xform(LVector3(0, 1, 0))
-                vector[2] = 0
-                vector.normalize()
-                self.tracking_space.setPos(self.tracking_space.getPos() + vector * (5 * dt))
-            if y < -0.1:
-                orientation = self.hmd_anchor.get_quat()
-                vector = orientation.xform(LVector3(0, 1, 0))
-                vector[2] = 0
-                vector.normalize()
-                self.tracking_space.setPos(self.tracking_space, vector * (-5 * dt))
-
 class RoamingRalphDemo(ShowBase):
     def __init__(self):
         # Set up the window, camera, etc.
         ShowBase.__init__(self)
+
+        # Create and configure the VR environment
+
+        self.ovr = P3DOpenVR()
+        self.ovr.init(msaa=4)
+        main_dir = ExecutionEnvironment.getEnvironmentVariable("MAIN_DIR")
+        # Setup the application manifest, it will identify and configure the app
+        # We force it in case it has changed.
+        self.ovr.identify_application(os.path.join(main_dir, "ralph.vrmanifest"), "p3dopenvr.demo.ralph", force=True)
+        # Load the actions manifest, it must be the same as the manifest rerefenced in the application manifest
+        self.ovr.load_action_manifest(os.path.join(main_dir, "manifest/actions.json"))
+        # Use the '/actions/platformer' action set. This action set will be updated each frame
+        self.ovr.add_action_set("/actions/platformer")
+        # Get the handle of the action '/actions/platformer/in/Move'. This hande will be used to retrieve the data of the action.
+        self.action_move = self.ovr.vr_input.getActionHandle('/actions/platformer/in/Move')
 
         # Set the background color to black
         self.win.setClearColor((0, 0, 0, 1))
@@ -102,16 +73,14 @@ class RoamingRalphDemo(ShowBase):
 
         # Create the main character, Ralph
 
-        self.vr = RoamingRalphVR()
-        self.vr.init(msaa=4)
-
         self.ralph = render.attachNewNode('ralph')
         self.ralphStartPos = self.environ.find("**/start_point").getPos()
-        self.vr.tracking_space.setPos(self.ralphStartPos)
-        self.ralph.setPos(self.vr.hmd_anchor.getPos(render))
+        self.ovr.tracking_space.setPos(self.ralphStartPos)
+        self.ralph.setPos(self.ovr.hmd_anchor.getPos(render))
 
         self.accept("escape", sys.exit)
 
+        taskMgr.add(self.move, "moveTask")
         taskMgr.add(self.collision, "collisionTask")
 
         # Set up the camera
@@ -153,6 +122,30 @@ class RoamingRalphDemo(ShowBase):
         render.setLight(render.attachNewNode(ambientLight))
         render.setLight(render.attachNewNode(directionalLight))
 
+    # Move camera according to user's input
+    def move(self, task):
+        # Get the time that elapsed since last frame.  We multiply this with
+        # the desired speed in order to find out with which distance to move
+        # in order to achieve that desired speed.
+        dt = globalClock.getDt()
+
+        # If a move-button is touched, move in the specified direction.
+        move_data, device_path = self.ovr.get_analog_action_value(self.action_move)
+        if move_data is not None:
+            x, y = move_data.x,move_data.y
+            # The x coordinate is used to turn the camera
+            self.ovr.tracking_space.setH(self.ovr.tracking_space.getH() - x * 60 * dt)
+            # The y coordinate is used to move the camera along the view vector
+            # We retrieve the orientation of the headset and we generate a 2D direction
+            orientation = self.ovr.hmd_anchor.get_quat(render)
+            vector = orientation.xform(LVector3(0, 1, 0))
+            vector[2] = 0
+            vector.normalize()
+            # Use the vector and the x value to move the camera relative to itself
+            self.ovr.tracking_space.setPos(self.ovr.tracking_space.getPos() + vector * (y * 5 * dt))
+
+        return task.cont
+
     # Grid checking and collision detection
     def collision(self, task):
 
@@ -169,15 +162,15 @@ class RoamingRalphDemo(ShowBase):
         entries.sort(key=lambda x: x.getSurfacePoint(render).getZ())
 
         if len(entries) > 0 and entries[0].getIntoNode().getName() == "terrain":
-            self.vr.tracking_space.setZ(entries[0].getSurfacePoint(render).getZ())
+            self.ovr.tracking_space.setZ(entries[0].getSurfacePoint(render).getZ())
         else:
-            self.vr.tracking_space.setPos(self.ralphStartPos)
-        self.ralph.setPos(self.vr.hmd_anchor.getPos(render))
+            self.ovr.tracking_space.setPos(self.ralphStartPos)
+        self.ralph.setPos(self.ovr.hmd_anchor.getPos(render))
 
         # save ralph's initial position so that we can restore it,
         # in case he falls off the map or runs into something.
 
-        self.ralphStartPos = self.vr.tracking_space.getPos()
+        self.ralphStartPos = self.ovr.tracking_space.getPos()
 
         return task.cont
 

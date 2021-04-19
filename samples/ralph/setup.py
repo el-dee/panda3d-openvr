@@ -5,6 +5,7 @@ setup(
     options = {
         'build_apps': {
             'include_patterns': [
+                '**/*.vrmanifest',
                 '**/*.json',
                 '**/*.png',
                 '**/*.jpg',

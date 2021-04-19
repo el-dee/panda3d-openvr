@@ -1,2 +1,2 @@
-panda3d>=1.10.6
-panda3d-openvr
+panda3d>=1.10.9
+panda3d-openvr>=0.2.0
