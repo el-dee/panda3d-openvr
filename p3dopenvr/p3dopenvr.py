@@ -67,6 +67,10 @@ class P3DOpenVR():
         self.on_texture_submit_error_notified = False
 
     def create_buffer(self, name, texture, width, height, fbprops):
+        """
+        Create a render buffer with the given properties.
+        """
+
         winprops = WindowProperties()
         winprops.set_size(width, height)
         props = FrameBufferProperties(FrameBufferProperties.get_default())
@@ -86,6 +90,10 @@ class P3DOpenVR():
         return buffer
 
     def create_renderer(self, name, camera, width, height, msaa, callback, cc=None):
+        """
+        Create and configure a render to texture pipeline and attach it the given camera and draw callback.
+        """
+
         texture = Texture()
         texture.set_wrap_u(Texture.WMClamp)
         texture.set_wrap_v(Texture.WMClamp)
@@ -108,6 +116,10 @@ class P3DOpenVR():
         return texture
 
     def create_camera(self, name, projection_mat):
+        """
+        Create a camera with the given projection matrix.
+        """
+
         cam_node = Camera(name)
         lens = MatrixLens()
         lens.set_user_mat(projection_mat)
@@ -115,6 +127,11 @@ class P3DOpenVR():
         return cam_node
 
     def convert_mat(self, mat):
+        """
+        Convert a OpenVR Matrix into a Panda3D Matrix. No coordinate system conversion is performed.
+        Note that 3x4 matrices are converted into 4x4 matrices.
+        """
+
         if len(mat.m) == 4:
             result = LMatrix4(
                     mat.m[0][0], mat.m[1][0], mat.m[2][0], mat.m[3][0],
@@ -130,6 +147,10 @@ class P3DOpenVR():
         return result
 
     def convert_vector(self, vector):
+        """
+        Convert a OpenVR vector into a Panda3D vector. No coordinate system conversion is performed.
+        """
+
         if len(vector.v) == 4:
             result = LVector4(vector.v[0], vector.v[1], vector.v[2], vector.v[3])
         elif len(vector.v) == 3:
@@ -139,13 +160,25 @@ class P3DOpenVR():
         return result
 
     def convert_quaternion(self, quaternion):
+        """
+        Convert a OpenVR quaternion into a Panda3D quaternion. No coordinate system conversion is performed.
+        """
+
         return LQuaternion(quaternion.w, quaternion.x, quaternion.y, quaternion.z)
 
     def disable_main_cam(self):
+        """
+        Disable the default camera (but not remove it).
+        """
+
         self.empty_world = NodePath()
         self.base.camera.reparent_to(self.empty_world)
 
     def replicate(self, texture):
+        """
+        Attach the given texture to a full window quad.
+        """
+
         cm = CardMaker("replicate-quad")
         cm.set_frame_fullscreen_quad()
         self.quad = NodePath(cm.generate())
@@ -164,6 +197,7 @@ class P3DOpenVR():
         """
         Return a trivial shader that will directly place the mesh in the clip space
         """
+
         if self.ham_shader is None:
             self.ham_shader = Shader.make(Shader.SL_GLSL,
                 vertex="""#version 330
@@ -184,6 +218,7 @@ void main() {
         """
         Using the provided mask configuration, create the mesh that will cover the area not visible from the HMD
         """
+
         gvf = GeomVertexFormat.get_v3()
         gvd = GeomVertexData('gvd', gvf, Geom.UH_static)
         geom = Geom(gvd)
@@ -204,6 +239,7 @@ void main() {
         """
         Create and attach the two meshes that will hide the areas not visible from the HMD.
         """
+
         left_eye_mask = self.vr_system.getHiddenAreaMesh(eye, type_=openvr.k_eHiddenAreaMesh_Standard)
         left_mesh = self.create_hidden_area_mesh(left_eye_mask)
         np = anchor.attach_new_node(left_mesh)
@@ -249,8 +285,11 @@ void main() {
             else:
                 self.color_space = openvr.ColorSpace_Linear
 
+        # Create a OpenVR array that will store the pose of all the tracked devices.
         poses_t = openvr.TrackedDevicePose_t * openvr.k_unMaxTrackedDeviceCount
         self.poses = poses_t()
+
+        # Initialise OpenVR and retrieve the main components
         self.vr_system = openvr.init(openvr.VRApplication_Scene)
         self.vr_applications = openvr.VRApplications()
         width, height = self.vr_system.getRecommendedRenderTargetSize()
@@ -259,6 +298,7 @@ void main() {
         if self.compositor is None:
             raise Exception("Unable to create compositor") 
 
+        # Create the tracking space anchors
         if root is None:
             root = self.base.render
         self.tracking_space = root.attach_new_node('tracking-space')
@@ -266,21 +306,27 @@ void main() {
         self.left_eye_anchor = self.hmd_anchor.attach_new_node('left-eye')
         self.right_eye_anchor = self.hmd_anchor.attach_new_node('right-eye')
 
+        # Create the projection matrices for the left and right camera.
+        # TODO: This should be updated in the update task in the case the user update the IOD
         self.projection_left = self.coord_mat_inv * self.convert_mat(self.vr_system.getProjectionMatrix(openvr.Eye_Left, near, far))
         self.projection_right = self.coord_mat_inv * self.convert_mat(self.vr_system.getProjectionMatrix(openvr.Eye_Right, near, far))
 
+        # Create the cameras and attach them in the tracking space
         left_cam_node = self.create_camera('left-cam', self.projection_left)
         right_cam_node = self.create_camera('right-cam', self.projection_right)
 
         self.left_cam = self.left_eye_anchor.attach_new_node(left_cam_node)
         self.right_cam = self.right_eye_anchor.attach_new_node(right_cam_node)
 
+        # Create the renderer linked to each camera
         self.left_texture = self.create_renderer('left-buffer', self.left_cam, width, height, msaa, self.left_cb)
         self.right_texture = self.create_renderer('right-buffer', self.right_cam, width, height, msaa, self.right_cb)
 
+        # The main camera is useless, so we disable it
         self.disable_main_cam()
 
         if hidden_area_mesh:
+            # If the hidden area mesh is used, assign a mask on each camera to hide the opposite mesh
             left_cam_node.set_camera_mask(BitMask32.bit(0))
             right_cam_node.set_camera_mask(BitMask32.bit(1))
             self.attach_hidden_area_mesh(openvr.Eye_Left, self.left_eye_anchor, 1)
@@ -302,12 +348,33 @@ void main() {
             print("WARNING: init_action() is deprecated and will be removed in a future release")
             self.init_action()
 
+        # Launch the main task that will synchronize Panda3D with OpenVR
+        # TODO: The sort number should be configurable and by default be placed after the gc tasks.
         self.task = taskMgr.add(self.update_poses_task, "openvr-update-poses", sort=-1000)
 
     def get_update_task_sort(self):
+        """
+        Return the correct sort number to use for any update task. They must always be run after the task updating
+        the poses.
+        """
+
         return self.task.get_sort() + 1
 
     def identify_application(self, application_filename, app_key, temporary=True, force=False):
+        """
+        Register the application in OpenVR, this will allow any custom configuration made in the OpenVR implementation
+        e.g. SteamVR, to be associated with this application and restored when the app is launched again.
+
+        * application_filename : Path to the application manifest that contains all the data describing the application
+
+        * app_key : Unique identifier for this application.
+
+        * temporary : Set to True if the OpenVR implementation should not store the information related to this
+          application.
+
+        * force : Set to true is any previous registration related to this application should be removed.
+        """
+
         identified = False
         app_installed = self.vr_applications.isApplicationInstalled(app_key)
         if not app_installed or force:
@@ -333,11 +400,23 @@ void main() {
         return identified
 
     def load_application_manifest(self, manifest_filename, temporary):
+        """
+        Load the given application manifest. This is a low-level method, use identify_application() instead.
+        """
+
         if self.verbose:
             print("Loading", manifest_filename)
         self.vr_applications.addApplicationManifest(manifest_filename, temporary)
 
     def load_action_manifest(self, action_filename, action_path=None):
+        """
+        Load the action manifest given in parameter.
+
+        action_filename : Path to the action manifest main configuration file.
+
+        action_path : Deprecated parameter, do not use.
+        """
+
         if self.verbose:
             print("Loading", action_filename)
         self.vr_input.setActionManifestPath(action_filename)
@@ -346,9 +425,19 @@ void main() {
             self.add_action_set(action_path)
 
     def add_action_set(self, action_set_path):
+        """
+        Add the given action set to the list of action sets to update each frame.
+
+        action_set_path : Full path of the action set
+        """
+
         self.action_set_handles.append(self.vr_input.getActionSetHandle(action_set_path))
 
     def update_hmd(self, pose):
+        """
+        Update the anchors linked to the headset and the eyes in the tracking space
+        """
+
         modelview = self.convert_mat(pose.mDeviceToAbsoluteTracking)
         self.hmd_anchor.set_mat(self.coord_mat_inv * modelview * self.coord_mat)
         view_left = self.convert_mat(self.vr_system.getEyeToHeadTransform(openvr.Eye_Left))
@@ -363,9 +452,15 @@ void main() {
         * device_index : the index of the device to be used as parameter when using OpenVR API.
         * device_anchor : the node path created in the tracked space for the device.
         """
+
         self.new_tracked_device_handler = event_handler
 
     def update_tracked_device(self, device_index, pose):
+        """
+        Update the anchor linked to the tracked device in the tracking space. If the device is not yet in the list of
+        tracked devices, the new_tracked_device handler will be called.
+        """
+
         if not device_index in self.tracked_devices_anchors:
             model_name = self.vr_system.getStringTrackedDeviceProperty(device_index, openvr.Prop_RenderModelName_String)
             np_name = str(device_index) + ':' + model_name
@@ -386,6 +481,10 @@ void main() {
         device_anchor.set_mat(modelview)
 
     def update_tracked_devices(self):
+        """
+        Update all the tracked devices linked with the observed poses
+        """
+
         for i in range(1, len(self.poses)):
             pose = self.poses[i]
             if not pose.bPoseIsValid:
@@ -405,12 +504,17 @@ void main() {
         """
         Remove a previously registered event handler
         """
+
         try:
             self.event_handlers.remove(event_handler)
         except ValueError:
             pass
 
     def poll_events(self):
+        """
+        Retrieve and forward all the events pending in the VR system to the registered event handlers.
+        """
+
         event = openvr.VREvent_t()
         has_events = self.vr_system.pollNextEvent(event)
         while has_events:
@@ -425,6 +529,10 @@ void main() {
             has_events = self.vr_system.pollNextEvent(event)
 
     def update_action_state(self):
+        """
+        Update the state of all the registered action sets.
+        """
+
         nb_of_action_sets = len(self.action_set_handles)
         if nb_of_action_sets > 0:
             action_sets = (openvr.VRActiveActionSet_t * nb_of_action_sets)()
@@ -439,18 +547,35 @@ void main() {
             self.update_action()
 
     def update_poses_task(self, task):
+        """
+        Main task of the VR system, this method will synchronize Panda3D with the OpenVR renderer to allow providing
+        the rendered scene in time.
+        It will also poll the pending events, update the hmd pose and all the registered action sets.
+        """
+
         if self.compositor is None:
             return task.cont
+        # waitGetPoses() is a blocking call, it will returns only when OpenVR allow us to start rendering the next
+        # frame.
         self.compositor.waitGetPoses(self.poses, None)
+
+        # Poll and forward all the pending events
         self.poll_events()
+
+        # Retrieve the HMD pose, or bail out if it is not available.
         hmd_pose = self.poses[openvr.k_unTrackedDeviceIndex_Hmd]
         if not hmd_pose.bPoseIsValid:
             if self.verbose:
                 print("HMD pose is not valid")
             return task.cont
         self.update_hmd(hmd_pose)
+
+        # Update any explicitly tracked devices
         self.update_tracked_devices()
+
+        # Update all the action sets
         self.update_action_state()
+
         return task.cont
 
     def set_submit_error_handler(self, error_handler):
@@ -460,10 +585,17 @@ void main() {
         The handler will receive one parameter :
         * exception : the exception raised during the texture submit.
         """
+
         self.submit_error_handler = error_handler
 
     def submit_texture(self, eye, texture):
+        """
+        Submit to OpenVR the rendered frame for the given eye.
+        Note that this method must be called from within the Draw context in order to have the texture bound.
+        """
+
         try:
+            # Retrieve the texture OpenGL binding
             texture_context = texture.prepare_now(0, self.base.win.gsg.prepared_objects, self.base.win.gsg)
             handle = texture_context.get_native_id()
             if handle != 0:
@@ -486,27 +618,48 @@ void main() {
                     raise e
 
     def left_cb(self, cbdata):
+        """
+        Draw callback that is linked with the left eye camera. Once the frame rendering is done, it will submit
+        the result to OpenVR, if the eyes are submitted separately.
+        """
+
+        # Perform the actual Draw job
         cbdata.upcall()
         if not self.submit_together:
+            # Submit the left eye texture if we are not submitting left and right textures at the same time
             self.submit_texture(openvr.Eye_Left, self.left_texture)
 
     def right_cb(self, cbdata):
+        """
+        Draw callback that is linked with the right eye camera. Once the frame rendering is done, it will submit
+        the result to OpenVR.
+        """
+
+        # Perform the actual Draw job
         cbdata.upcall()
         if self.submit_together:
+            # Submit the left eye texture if we are submitting left and right textures at the same time
             self.submit_texture(openvr.Eye_Left, self.left_texture)
+        # In any case, submit the right eye texture
         self.submit_texture(openvr.Eye_Right, self.right_texture)
 
     def get_pose_modelview(self, pose):
         """
         Return the transform matrix corresponding to the given pose in the tracked space reference frame
         """
+
         modelview = self.convert_mat(pose.mDeviceToAbsoluteTracking)
         return self.coord_mat_inv * modelview * self.coord_mat
 
     def get_action_pose(self, action, device=openvr.k_ulInvalidInputValueHandle):
         """
         Return the pose associated with the given action. The action must be a pose action.
+
+        action : OpenVR handle of the action, can be retrieved using vr_input.getActionHandle()
+
+        device : Handle of a device. If specified, restrict the pose to the linked device.
         """
+
         pose_data = self.vr_input.getPoseActionDataForNextFrame(
             action,
             openvr.TrackingUniverseStanding,
@@ -517,7 +670,12 @@ void main() {
     def get_digital_action_rising_edge(self, action, device_path=False):
         """
         Returns true if the action is active and had a rising edge
+
+        action : OpenVR handle of the action, can be retrieved using vr_input.getActionHandle()
+
+        device_path : If true, returns also the handle of the device that triggered the action.
         """
+
         action_data = self.vr_input.getDigitalActionData(action, openvr.k_ulInvalidInputValueHandle)
         if device_path is not None:
             if action_data.bActive:
@@ -530,7 +688,12 @@ void main() {
     def get_digital_action_falling_edge(self, action, device_path=False):
         """
         Returns true if the action is active and had a falling edge
+
+        action : OpenVR handle of the action, can be retrieved using vr_input.getActionHandle()
+
+        device_path : If true, returns also the handle of the device that triggered the action.
         """
+
         action_data = self.vr_input.getDigitalActionData(action, openvr.k_ulInvalidInputValueHandle)
         if device_path:
             if action_data.bActive:
@@ -543,7 +706,12 @@ void main() {
     def get_digital_action_state(self, action, device_path=False):
         """
         Returns true if the action is active and its state is true
+
+        action : OpenVR handle of the action, can be retrieved using vr_input.getActionHandle()
+
+        device_path : If true, returns also the handle of the device that triggered the action.
         """
+
         action_data = self.vr_input.getDigitalActionData(action, openvr.k_ulInvalidInputValueHandle)
         if device_path:
             if action_data.bActive:
@@ -556,7 +724,12 @@ void main() {
     def get_analog_action_value(self, action, device_path=False):
         """
         Returns the analog value of the action, if it is active, else None
+
+        action : OpenVR handle of the action, can be retrieved using vr_input.getActionHandle()
+
+        device_path : If true, returns also the handle of the device that triggered the action.
         """
+
         analog_data = self.vr_input.getAnalogActionData(action, openvr.k_ulInvalidInputValueHandle)
         if device_path:
             if analog_data.bActive:
@@ -570,6 +743,15 @@ void main() {
             return None, None
 
     def get_bone_transform(self, bone_transform_array, bone_index):
+        """
+        Returns the transform related to the given bone. The transform is returned as a translation vector and
+        a quaternion rotation.
+
+        bone_transform_array : Array containing all the bones transformations
+
+        bone_index : Index of the bone transformation to retrieve.
+        """
+
         if bone_index < len(bone_transform_array):
             bone_transform = bone_transform_array[bone_index]
             if bone_transform is not None:
@@ -583,6 +765,14 @@ void main() {
         return LVector4(), LQuaternion()
 
     def get_bone_transform_mat(self, bone_transform_array, bone_index):
+        """
+        Returns the transform related to the given bone. The transform is returned as a 4-dimensions transform matrix.
+
+        bone_transform_array : Array containing all the bones transformations
+
+        bone_index : Index of the bone transformation to retrieve.
+        """
+
         if bone_index < len(bone_transform_array):
             bone_transform = bone_transform_array[bone_index]
             if bone_transform is not None:
@@ -598,10 +788,22 @@ void main() {
         return LMatrix4.ident_mat()
 
     def get_skeletal_bone_data(self, action, device_path=False):
+        """
+        Returns the skeleton bone data provided by the given action. The individual bone transform must be extracted
+        using either get_bone_transform() or get_bone_transform_mat()
+
+        action : OpenVR handle of the action, can be retrieved using vr_input.getActionHandle()
+
+        device_path : If true, returns also the handle of the device that triggered the action.
+        """
+
+        # Retrieve the data of the action, this will gives the active status and the device.
         skeleton_data = self.vr_input.getSkeletalActionData(action)
         if skeleton_data.bActive == 0:
             return None, None
 
+        # Retrieve the bones data from the action. The bone transforms are all defined in their parent's reference frame,
+        # and the default range is as if there is no controller.
         boneCount = self.vr_input.getBoneCount(action)
         bone_transform_arr = [openvr.VRBoneTransform_t()] * boneCount
         arr = (openvr.VRBoneTransform_t * len(bone_transform_arr))(*bone_transform_arr)
@@ -616,6 +818,17 @@ void main() {
         return arr, device_path
 
     def get_skeletal_reference_transform(self, action, pose, device_path=False):
+        """
+        Returns the skeleton bone reference data provided by the given action. The individual bone transform must be
+        extracted using either get_bone_transform() or get_bone_transform_mat()
+
+        action : OpenVR handle of the action, can be retrieved using vr_input.getActionHandle()
+
+        pose : Reference pose to return.
+
+        device_path : If true, returns also the handle of the device that triggered the action.
+        """
+
         skeleton_data = self.vr_input.getSkeletalActionData(action)
         if skeleton_data.bActive == 0:
             if device_path:
@@ -640,6 +853,7 @@ void main() {
         """
         Debug method printing the detected tracked devices
         """
+
         if self.poses is None: return 
         for i in range(1, len(self.poses)):
             pose = self.poses[i]
