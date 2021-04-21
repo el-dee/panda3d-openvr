@@ -31,9 +31,7 @@ Then, once an instance of ShowBase is created, instanciate the VR interface and 
 
 Once done, the module will enable the VR application layer of OpenVR, create the left and right cameras and configure the rendering system to send the images of each eye to the VR compositor.
 
-Note that on Linux, SteamVR **must** be already running before you launch your application.
-
-You can create a derived class of P3DOpenVR to provide the implementation of the event handler or to manage the actions, see the samples below.
+Note that, on Linux, SteamVR **must** be already running before you launch your application.
 
 The module will create the following hierachy in the scenegraph :
 
@@ -49,6 +47,9 @@ The controllers will be one the the tracked devices, see the samples to know how
 
 By default the left eye image is also rendered on the main application window.
 
+## Documentation
+
+There is no manual available, but the code is heavily documented and each functionality is demonstrated in one of the following examples.
 
 ## Examples
 
@@ -64,11 +65,17 @@ This example shows how to use the simple event and pose interfaces to retrieve t
 
 ### Actions
 
-In samples/actions, you can find a demo using action manifest to bind actions from the user to event in the application. This is more complex to set up than the event interface, but allows the end user to remap the actions
+In samples/actions, you can find a demo using action manifest to bind actions from the user to event in the application.
+This is more complex to set up than the event interface, but allows the end user to remap the actions
+
+### Skeleton
+
+In samples/skeleton, you can find a demo using action manifest to animate the fingers of your virtual hands using the dynamic hand skeleton provided by OpenVR.
 
 ### Ralph
 
-In samples/ralph you can find a heavily modified version of the Roaming Ralph demo. In the version, you are Ralph and you can explore the space around you. Using the trackpad on the left controller, you can move forward and backward in the direction you're facing, or rotate the camera.
+In samples/ralph you can find a heavily modified version of the Roaming Ralph demo.
+In the version, you are Ralph and you can explore the space around you. Using the trackpad on the left controller, you can move forward and backward in the direction you're facing, or rotate the camera.
 
 ## License
 

@@ -37,7 +37,7 @@ class RoamingRalphDemo(ShowBase):
         # Setup the application manifest, it will identify and configure the app
         # We force it in case it has changed.
         self.ovr.identify_application(os.path.join(main_dir, "ralph.vrmanifest"), "p3dopenvr.demo.ralph", force=True)
-        # Load the actions manifest, it must be the same as the manifest rerefenced in the application manifest
+        # Load the actions manifest, it must be the same as the manifest referenced in the application manifest
         self.ovr.load_action_manifest(os.path.join(main_dir, "manifest/actions.json"))
         # Use the '/actions/platformer' action set. This action set will be updated each frame
         self.ovr.add_action_set("/actions/platformer")

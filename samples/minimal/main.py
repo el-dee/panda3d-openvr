@@ -51,10 +51,18 @@ class MinimalDemo:
 
     def __init__(self, ovr):
         self.ovr = ovr
+
+        # Register a general event handler
         ovr.register_event_handler(self.process_vr_event)
+
+        # Register a new device detected handler
         ovr.set_new_tracked_device_handler(self.new_tracked_device)
 
     def button_event(self, event):
+        """
+        Print the information related to the button event received.
+        """
+
         device_index = event.trackedDeviceIndex
         device_class = self.ovr.vr_system.getTrackedDeviceClass(device_index)
         if device_class != openvr.TrackedDeviceClass_Controller:
@@ -73,6 +81,10 @@ class MinimalDemo:
         print(role_name, button_name, event_name)
 
     def device_event(self, event, action):
+        """
+        Print the information related to the device event received.
+        """
+
         device_index = event.trackedDeviceIndex
         device_class = self.ovr.vr_system.getTrackedDeviceClass(device_index)
         class_name = self.classes_map.get(device_class)
@@ -94,6 +106,10 @@ class MinimalDemo:
             self.button_event(event)
 
     def new_tracked_device(self, device_index, device_anchor):
+        """
+        Attach a trivial model to the anchor or the detected device
+        """
+
         print("Adding new device", device_anchor.name)
         device_class = self.ovr.vr_system.getTrackedDeviceClass(device_index)
         if device_class == openvr.TrackedDeviceClass_Controller:
@@ -105,8 +121,12 @@ class MinimalDemo:
             model.reparent_to(device_anchor)
             model.set_scale(0.1)
 
+# Set up the window, camera, etc.
+
 base = ShowBase()
 base.setFrameRateMeter(True)
+
+# Create and configure the VR environment
 
 ovr = P3DOpenVR()
 ovr.init()
