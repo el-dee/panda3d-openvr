@@ -59,6 +59,7 @@ class P3DOpenVR():
         self.event_handlers = []
         self.submit_error_handler = None
         self.new_tracked_device_handler = None
+        self.has_focus = False
 
         #Deprecation flags to avoid spamming
         self.process_vr_event_notified = False
@@ -518,6 +519,14 @@ void main() {
         event = openvr.VREvent_t()
         has_events = self.vr_system.pollNextEvent(event)
         while has_events:
+            if event.eventType == openvr.VREvent_InputFocusCaptured:
+                if self.verbose:
+                    print("Application captured the input focus")
+                self.has_focus = True
+            elif event.eventType == openvr.VREvent_InputFocusReleased:
+                if self.verbose:
+                    print("Application released the input focus")
+                self.has_focus = False
             if hasattr(self, 'process_vr_event'):
                 if not self.process_vr_event_notified:
                     print("WARNING: 'update_action()' method is deprecated and will be removed in a next release")
