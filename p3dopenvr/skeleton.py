@@ -3,7 +3,20 @@ from direct.actor.Actor import Actor
 from .definitions import HandSkeletonBone
 
 class HandSkeleton:
+    """
+    Helper class that will map the skeleton received from OpenVR onto the bones of the model of the hand.
+    """
     def __init__(self, ovr, action, joint_map, part_name="modelRoot"):
+        """
+        * ovr : Reference to the instance of P3DOpenVR.
+
+        * action : Handler of the action holding the bone transforms of the hand
+
+        * joint_map : Dictionary that maps the joints of the model onto the bones of the OpenVR skeleton
+
+        * part_name : Name of the root node in the model that contains the joints.
+        """
+
         self.ovr = ovr
         self.action = action
         self.joint_map = joint_map
@@ -12,12 +25,22 @@ class HandSkeleton:
         self.model = None
 
     def set_model(self, model):
+        """
+        Attach the given model to the skeleton.
+
+        * model : Instance of the model of the hand.
+        """
+
         if not isinstance(model, Actor):
             model = Actor(model, copy=False)
         self.model = model
         self.build_control_map()
 
     def build_control_map(self):
+        """
+        Retrieve the control joints in the model of the hand and map them onto the bones of the skeleton.
+        """
+
         self.control_map = {}
         for (joint_name, bone_index) in self.joint_map.items():
             joint_control = self.model.control_joint(None, self.part_name, joint_name)
@@ -30,6 +53,11 @@ class HandSkeleton:
         pass
 
     def update(self):
+        """
+        Retrieve the transforms for all the bone and update the linked control joints.
+        This method should be called each frame after the main pose update task.
+        """
+
         bone_transform_array, device_path = self.ovr.get_skeletal_bone_data(self.action)
         if bone_transform_array is not None:
             for (bone_index, joint_control) in self.control_map.items():
@@ -37,6 +65,10 @@ class HandSkeleton:
                 joint_control.set_mat(transform_mat)
 
 class DefaultLeftHandSkeleton(HandSkeleton):
+    """
+    Helper class that will map the default model of the left hand from Valve to the bones of the skeleton.
+    """
+
     default_joint_map = {
         'wrist_l': HandSkeletonBone.Wrist,
         'finger_thumb_0_l': HandSkeletonBone.Thumb0,
@@ -69,6 +101,10 @@ class DefaultLeftHandSkeleton(HandSkeleton):
         HandSkeleton.__init__(self, ovr, action, self.default_joint_map)
 
 class DefaultRightHandSkeleton(HandSkeleton):
+    """
+    Helper class that will map the default model of the right hand from Valve to the bones of the skeleton.
+    """
+
     default_joint_map = {
         'wrist_r': HandSkeletonBone.Wrist,
         'finger_thumb_0_r': HandSkeletonBone.Thumb0,

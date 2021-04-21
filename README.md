@@ -71,6 +71,7 @@ This is more complex to set up than the event interface, but allows the end user
 ### Skeleton
 
 In samples/skeleton, you can find a demo using action manifest to animate the fingers of your virtual hands using the dynamic hand skeleton provided by OpenVR.
+See the sample README for where to find the hand models to use.
 
 ### Ralph
 
